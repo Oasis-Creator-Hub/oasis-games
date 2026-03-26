@@ -1,0 +1,1979 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Shadow Deck v4 — WebGPU</title>
+<link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700&family=Cinzel+Decorative:wght@400;700;900&family=Rajdhani:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+*{margin:0;padding:0;box-sizing:border-box;}
+body{background:#000;overflow:hidden;width:100vw;height:100vh;font-family:'Cinzel',serif;}
+#gpuCanvas{position:fixed;inset:0;width:100%;height:100%;display:block;touch-action:none;}
+#overlay{position:fixed;inset:0;pointer-events:none;z-index:10;}
+/* ── Enemy Panel ── */
+#enemy-panel{
+  pointer-events:auto;position:fixed;top:12px;left:50%;transform:translateX(-50%);
+  background:linear-gradient(135deg,rgba(10,0,25,.92),rgba(30,5,50,.88));
+  border:1px solid rgba(150,100,200,.4);border-radius:10px;
+  padding:10px 18px;min-width:320px;
+  box-shadow:0 0 20px rgba(100,50,180,.3),inset 0 0 15px rgba(0,0,0,.5);
+}
+#enemy-name{font-family:'Cinzel Decorative',serif;font-size:15px;font-weight:700;
+  color:#d4aaff;letter-spacing:1px;text-shadow:0 0 8px rgba(180,100,255,.8);
+  margin-bottom:6px;text-align:center;}
+.hp-bar-wrap{background:rgba(0,0,0,.5);border-radius:6px;height:14px;overflow:hidden;border:1px solid rgba(255,255,255,.1);}
+.hp-bar-fill{height:100%;border-radius:6px;transition:width .4s ease;}
+#enemy-hp-fill{background:linear-gradient(90deg,#8b0000,#cc2222,#ff4444);}
+.hp-label{font-size:11px;color:#ccc;text-align:center;margin-top:3px;}
+#enemy-meta{display:flex;gap:12px;justify-content:center;margin-top:8px;align-items:center;}
+.status-badge{background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.2);
+  border-radius:6px;padding:3px 8px;font-size:11px;color:#ddd;display:flex;align-items:center;gap:4px;}
+#intent-icon{font-size:22px;}
+#intent-label{font-size:11px;color:#f0c040;text-align:center;margin-top:4px;}
+/* ── Player Stats ── */
+#player-stats{
+  pointer-events:auto;position:fixed;bottom:110px;left:16px;
+  background:linear-gradient(135deg,rgba(5,10,30,.92),rgba(10,20,50,.88));
+  border:1px solid rgba(80,120,220,.4);border-radius:10px;
+  padding:10px 14px;min-width:160px;box-shadow:0 0 18px rgba(50,80,200,.3);
+}
+#player-name{font-family:'Cinzel Decorative',serif;font-size:12px;color:#88aaff;
+  text-shadow:0 0 6px rgba(100,150,255,.7);margin-bottom:6px;}
+#player-hp-fill{background:linear-gradient(90deg,#004488,#0066cc,#44aaff);}
+#energy-row{display:flex;gap:6px;margin-top:8px;align-items:center;}
+.energy-pip{width:20px;height:20px;border-radius:50%;
+  background:radial-gradient(circle,#ffee44,#cc8800);
+  border:2px solid #ffdd00;box-shadow:0 0 8px rgba(255,220,0,.8);transition:all .3s;}
+.energy-pip.empty{background:radial-gradient(circle,#333,#111);border-color:#444;box-shadow:none;}
+#armor-badge{display:flex;align-items:center;gap:5px;margin-top:6px;font-size:13px;color:#aaddff;}
+/* ── Action Bar ── */
+#action-bar{pointer-events:auto;position:fixed;bottom:12px;right:16px;display:flex;gap:10px;align-items:center;}
+.action-btn{font-family:'Cinzel',serif;font-size:13px;font-weight:600;
+  padding:10px 22px;border-radius:8px;cursor:pointer;border:none;
+  transition:all .2s;text-transform:uppercase;letter-spacing:1px;}
+#end-turn-btn{background:linear-gradient(135deg,#1a3a1a,#2a6a2a);color:#88ff88;
+  border:1px solid rgba(100,220,100,.5);box-shadow:0 0 12px rgba(50,200,50,.3);}
+#end-turn-btn:hover{background:linear-gradient(135deg,#2a5a2a,#3a8a3a);
+  box-shadow:0 0 20px rgba(50,200,50,.6);transform:translateY(-2px);}
+#map-btn{background:linear-gradient(135deg,#1a1a3a,#2a2a6a);color:#8888ff;
+  border:1px solid rgba(100,100,220,.5);box-shadow:0 0 12px rgba(50,50,200,.3);}
+#map-btn:hover{background:linear-gradient(135deg,#2a2a5a,#3a3a8a);transform:translateY(-2px);}
+#deck-count-btn{background:rgba(0,0,0,.5);color:#aaa;font-size:12px;
+  border:1px solid rgba(255,255,255,.1);border-radius:8px;padding:6px 10px;cursor:pointer;}
+#discard-disp{background:rgba(0,0,0,.5);color:#666;font-size:12px;
+  border:1px solid rgba(255,255,255,.05);border-radius:8px;padding:6px 10px;pointer-events:none;}
+</style>
+/* ── Hand Zone ── */
+#hand-zone{position:fixed;bottom:0;left:50%;transform:translateX(-50%);
+  display:flex;gap:6px;pointer-events:auto;z-index:20;}
+.hand-card-btn{
+  width:84px;height:120px;border-radius:8px;cursor:pointer;
+  background:transparent;border:none;position:relative;
+  transition:transform .2s;transform-origin:bottom center;
+}
+.hand-card-btn:hover{transform:translateY(-18px) scale(1.06);}
+.hand-card-btn.selected{transform:translateY(-32px) scale(1.08);
+  filter:drop-shadow(0 0 16px rgba(255,215,0,.9));}
+.hand-card-btn canvas{width:84px;height:120px;border-radius:8px;display:block;
+  box-shadow:0 4px 16px rgba(0,0,0,.7);}
+/* Keyboard hint badge */
+.card-key-hint{position:absolute;top:-18px;left:50%;transform:translateX(-50%);
+  background:rgba(255,215,0,.9);color:#000;font-size:10px;font-weight:700;
+  border-radius:4px;padding:1px 5px;pointer-events:none;opacity:0;transition:opacity .2s;}
+#hand-zone:hover .card-key-hint{opacity:1;}
+/* ── Turn Banner ── */
+#turn-banner{
+  position:fixed;top:50%;left:50%;z-index:200;pointer-events:none;
+  font-family:'Cinzel Decorative',serif;font-size:32px;font-weight:700;
+  padding:14px 52px;
+  background:linear-gradient(135deg,rgba(10,0,21,.96),rgba(60,0,100,.9));
+  border:2px solid rgba(255,215,0,.5);border-radius:6px;
+  color:#fff;letter-spacing:4px;
+  text-shadow:0 0 20px rgba(255,200,100,.85);
+  transform:translate(-200%,-50%);opacity:0;
+}
+#turn-banner.show{animation:bannerSlide 2s cubic-bezier(.22,1,.36,1) forwards;}
+@keyframes bannerSlide{
+  0%{transform:translate(-180%,-50%);opacity:0;}
+  18%{transform:translate(-50%,-50%);opacity:1;}
+  72%{transform:translate(-50%,-50%);opacity:1;}
+  100%{transform:translate(180%,-50%);opacity:0;}
+}
+/* ── Round Counter ── */
+#round-counter{
+  position:fixed;top:50%;left:14px;transform:translateY(-50%);z-index:100;pointer-events:none;
+  width:56px;height:56px;border-radius:50%;
+  background:radial-gradient(circle at 40% 35%,#1e0048,#0a0015);
+  border:2px solid rgba(255,215,0,.42);
+  display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px;
+}
+#round-lbl{font-family:'Rajdhani',sans-serif;font-size:8px;color:rgba(255,215,0,.6);
+  letter-spacing:1px;text-transform:uppercase;}
+#round-num{font-family:'Cinzel Decorative',serif;font-size:18px;color:#ffd700;line-height:1;}
+/* ── Floating damage ── */
+.float-num{position:fixed;z-index:5500;pointer-events:none;
+  font-family:'Cinzel Decorative',serif;font-weight:700;
+  animation:floatNumUp 1.1s ease-out forwards;}
+@keyframes floatNumUp{
+  0%{opacity:1;transform:translateY(0) scale(1.3);}
+  50%{opacity:1;transform:translateY(-46px) scale(1);}
+  100%{opacity:0;transform:translateY(-88px) scale(.75);}
+}
+.float-num.dmg-atk{color:#ff4444;font-size:36px;text-shadow:0 0 14px #f00,0 0 4px #fff;}
+.float-num.dmg-blk{color:#44aaff;font-size:30px;text-shadow:0 0 12px #08f;}
+.float-num.dmg-heal{color:#00ff88;font-size:26px;text-shadow:0 0 12px #0c6;}
+/* ── Table flash ── */
+#table-flash{position:fixed;inset:0;pointer-events:none;z-index:9;opacity:0;}
+@keyframes tableFlashAnim{0%{opacity:.8;}100%{opacity:0;}}
+/* ── OASIS Brand ── */
+#oasis-brand{position:fixed;top:14px;left:14px;z-index:8600;
+  font-family:'Cinzel Decorative',serif;font-size:13px;font-weight:700;
+  color:#ffd700;letter-spacing:3px;text-shadow:0 0 12px rgba(255,215,0,.55);
+  pointer-events:none;opacity:.9;}
+/* ── Wallet Btn ── */
+#wallet-btn{position:fixed;top:12px;right:12px;z-index:8500;
+  background:linear-gradient(135deg,#2a006a,#5a00bb);color:#e0b0ff;
+  border:1px solid rgba(180,100,255,.6);border-radius:8px;
+  padding:8px 16px;font-family:'Cinzel',serif;font-size:12px;
+  cursor:pointer;letter-spacing:1px;
+  box-shadow:0 0 12px rgba(150,50,255,.4);transition:all .2s;}
+#wallet-btn:hover{background:linear-gradient(135deg,#3a0090,#7a00ee);}
+/* ── Particle ── */
+.particle{position:fixed;border-radius:50%;pointer-events:none;z-index:300;
+  animation:particleFly var(--dur,.8s) ease-out forwards;}
+@keyframes particleFly{
+  0%{opacity:1;transform:translate(0,0) scale(1);}
+  100%{opacity:0;transform:translate(var(--px,0),var(--py,-60px)) scale(.2);}
+}
+/* ── Overlays ── */
+#msg-overlay,#map-overlay,#reward-overlay{
+  position:fixed;inset:0;z-index:100;display:none;
+  align-items:center;justify-content:center;background:rgba(0,0,0,.85);}
+#msg-overlay.show,#map-overlay.show,#reward-overlay.show{display:flex;}
+#msg-box,#map-box,#reward-box{
+  background:linear-gradient(135deg,#0a0020,#15003a);
+  border:1px solid rgba(180,100,255,.5);border-radius:14px;
+  padding:30px 40px;text-align:center;min-width:340px;
+  box-shadow:0 0 40px rgba(150,50,255,.4);}
+#msg-title,#map-title,#reward-title{
+  font-family:'Cinzel Decorative',serif;font-size:24px;color:#d4aaff;
+  text-shadow:0 0 15px rgba(200,100,255,.8);margin-bottom:10px;}
+#msg-body{font-size:14px;color:#aaa;line-height:1.6;margin-bottom:20px;}
+.overlay-btn{font-family:'Cinzel',serif;font-size:14px;padding:10px 28px;
+  border-radius:8px;cursor:pointer;
+  background:linear-gradient(135deg,#3a0060,#6a00aa);color:#e0b0ff;
+  border:1px solid rgba(180,100,255,.6);box-shadow:0 0 15px rgba(150,50,255,.4);
+  transition:all .2s;letter-spacing:1px;margin-top:10px;}
+.overlay-btn:hover{background:linear-gradient(135deg,#5a0090,#9a00ee);transform:scale(1.05);}
+/* Map */
+#map-nodes{display:flex;flex-direction:column;gap:12px;align-items:center;margin:16px 0;}
+.map-node-btn{font-family:'Cinzel',serif;font-size:13px;padding:10px 24px;
+  border-radius:8px;cursor:pointer;border:1px solid rgba(150,100,255,.4);
+  min-width:220px;transition:all .2s;letter-spacing:.5px;}
+.map-node-btn.combat{background:linear-gradient(135deg,#1a0808,#2a1010);color:#ff8888;}
+.map-node-btn.elite {background:linear-gradient(135deg,#1a0818,#2a1028);color:#ff88ff;}
+.map-node-btn.shop  {background:linear-gradient(135deg,#1a1808,#2a2810);color:#ffee88;}
+.map-node-btn.rest  {background:linear-gradient(135deg,#081808,#102810);color:#88ff88;}
+.map-node-btn.boss  {background:linear-gradient(135deg,#0a0000,#200000);color:#ff4444;}
+.map-node-btn:hover{transform:scale(1.04);box-shadow:0 0 14px rgba(180,100,255,.4);}
+.map-node-btn.visited{opacity:.4;cursor:not-allowed;pointer-events:none;}
+/* Reward */
+#reward-cards{display:flex;gap:16px;justify-content:center;flex-wrap:wrap;margin:16px 0;}
+.reward-card-btn{width:150px;padding:16px 12px;border-radius:10px;cursor:pointer;
+  border:1px solid rgba(180,100,255,.4);text-align:center;transition:all .2s;
+  font-family:'Cinzel',serif;}
+.reward-card-btn:hover{transform:translateY(-6px);box-shadow:0 0 20px rgba(180,100,255,.5);}
+.reward-card-name{font-size:14px;font-weight:600;margin-bottom:6px;}
+.reward-card-cost{font-size:22px;font-weight:700;margin-bottom:8px;}
+.reward-card-desc{font-size:11px;color:#aaa;line-height:1.4;}
+/* ── Intro Screen ── */
+#intro-screen{
+  position:fixed;inset:0;z-index:50000;
+  background:radial-gradient(ellipse at 50% 55%,#1a003a 0%,#0a0015 55%,#000 100%);
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  overflow:hidden;transition:opacity .8s ease;
+}
+#intro-screen.fade-out{opacity:0;pointer-events:none;}
+#intro-screen.hidden{display:none!important;}
+#intro-title{
+  font-family:'Cinzel Decorative',serif;
+  font-size:clamp(36px,7.5vw,90px);font-weight:900;
+  background:linear-gradient(90deg,#c77dff 0%,#ffd700 28%,#fff 50%,#ffd700 72%,#c77dff 100%);
+  background-size:300% 100%;
+  -webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;
+  animation:shimmerSwipe 3.5s linear infinite,fadeInDown 1s ease both;
+  letter-spacing:6px;filter:drop-shadow(0 0 28px rgba(180,100,255,.45));
+}
+@keyframes shimmerSwipe{0%{background-position:100% 0;}100%{background-position:-200% 0;}}
+@keyframes fadeInDown{from{opacity:0;transform:translateY(-28px);}to{opacity:1;transform:translateY(0);}}
+@keyframes fadeInUp{from{opacity:0;transform:translateY(22px);}to{opacity:1;transform:translateY(0);}}
+#intro-tagline{font-family:'Rajdhani',sans-serif;font-size:clamp(13px,2.2vw,21px);
+  font-weight:500;color:rgba(175,125,255,.82);letter-spacing:5px;text-transform:uppercase;
+  margin-top:10px;margin-bottom:52px;animation:fadeInUp 1s ease .5s both;}
+#intro-draw-btn{font-family:'Cinzel Decorative',serif;font-size:16px;font-weight:700;
+  letter-spacing:3px;color:#ffd700;background:transparent;
+  border:2px solid rgba(255,215,0,.75);padding:14px 52px;border-radius:4px;cursor:pointer;
+  animation:glowPulse 2.2s ease-in-out infinite,fadeInUp 1s ease 1s both;
+  transition:background .3s,box-shadow .3s;}
+#intro-draw-btn:hover{background:rgba(255,215,0,.1);box-shadow:0 0 40px rgba(255,215,0,.55);}
+@keyframes glowPulse{0%,100%{box-shadow:0 0 10px rgba(255,215,0,.3);}50%{box-shadow:0 0 28px rgba(255,215,0,.7);}}
+/* ── Victory / Defeat ── */
+#victory-overlay,#defeat-overlay{
+  position:fixed;inset:0;z-index:40000;display:none;
+  align-items:center;justify-content:center;flex-direction:column;
+  background:rgba(0,0,0,.85);}
+#victory-overlay.show,#defeat-overlay.show{display:flex;}
+#victory-title{font-family:'Cinzel Decorative',serif;font-size:64px;font-weight:900;
+  background:linear-gradient(90deg,#ffd700,#fff,#ffd700);background-size:200%;
+  -webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;
+  animation:shimmerSwipe 2s linear infinite;margin-bottom:20px;}
+#defeat-title{font-family:'Cinzel Decorative',serif;font-size:64px;font-weight:900;
+  color:#cc2222;text-shadow:0 0 40px rgba(200,0,0,.8);margin-bottom:20px;}
+.end-stats{font-size:15px;color:#aaa;text-align:center;line-height:2;margin-bottom:24px;}
+.v-burst,.d-ash{position:absolute;width:50px;height:70px;border-radius:6px;
+  animation:burst .8s var(--d,0s) ease-out both;}
+@keyframes burst{0%{opacity:1;transform:translate(0,0) rotate(0deg);}
+  100%{opacity:0;transform:translate(var(--vx,0),var(--vy,-100px)) rotate(var(--vr,180deg));}}
+/* === OASIS LEADERBOARD === */
+#sd-lb-btn{position:fixed;top:12px;left:50%;transform:translateX(-50%);font-family:'Cinzel',serif;font-size:.58rem;font-weight:700;color:#ffd700;background:rgba(0,0,0,.7);border:1px solid rgba(255,215,0,.35);padding:5px 14px;cursor:pointer;letter-spacing:.18em;z-index:201;transition:all .25s;white-space:nowrap}
+#sd-lb-btn:hover{background:rgba(255,215,0,.12);box-shadow:0 0 10px rgba(255,215,0,.25)}
+#sd-lb-overlay{position:fixed;inset:0;z-index:500;display:none;align-items:center;justify-content:center;background:rgba(0,0,0,.85);backdrop-filter:blur(8px)}
+#sd-lb-overlay.show{display:flex}
+#sd-lb-panel{background:rgba(5,0,15,.97);border:1px solid rgba(255,215,0,.3);box-shadow:0 0 40px rgba(255,215,0,.1);padding:28px 32px;width:min(460px,92vw);max-height:82vh;overflow-y:auto;font-family:'Rajdhani',sans-serif}
+#sd-lb-panel h2{font-family:'Cinzel Decorative',serif;color:#ffd700;text-align:center;letter-spacing:.2em;margin-bottom:4px;font-size:1.2rem}
+#sd-lb-sub{text-align:center;color:rgba(255,215,0,.4);font-size:.68rem;letter-spacing:.3em;margin-bottom:16px}
+#sd-lb-bestrow{display:flex;justify-content:space-around;flex-wrap:wrap;margin-bottom:14px;padding:10px;background:rgba(255,215,0,.04);border:1px solid rgba(255,215,0,.1);font-size:.78rem;color:rgba(255,215,0,.6);letter-spacing:.1em;text-align:center;gap:8px}
+.sd-lb-row{display:flex;justify-content:space-between;align-items:center;padding:7px 4px;border-bottom:1px solid rgba(255,215,0,.07);color:rgba(255,255,255,.75);font-size:.88rem}
+.sd-lb-row.gold{color:#ffd700;font-weight:700}
+#sd-lb-btns{display:flex;justify-content:center;gap:10px;margin-top:14px}
+.sd-lb-act{font-family:'Cinzel',serif;font-size:.65rem;color:#ffd700;background:transparent;border:1px solid rgba(255,215,0,.35);padding:8px 20px;cursor:pointer;letter-spacing:.15em;transition:all .25s}
+.sd-lb-act:hover{background:rgba(255,215,0,.1)}
+#sd-lb-clr{color:rgba(255,80,80,.7);border-color:rgba(255,80,80,.3)}
+#sd-lb-clr:hover{background:rgba(255,50,50,.1)}
+</style>
+</head>
+<body>
+<canvas id="gpuCanvas"></canvas>
+<div id="table-flash"></div>
+
+<!-- Enemy Panel -->
+<div id="enemy-panel">
+  <div id="enemy-name">???</div>
+  <div class="hp-bar-wrap"><div class="hp-bar-fill" id="enemy-hp-fill" style="width:100%"></div></div>
+  <div class="hp-label" id="enemy-hp-label">-- / --</div>
+  <div id="enemy-meta">
+    <div class="status-badge">🛡 <span id="enemy-armor-val">0</span></div>
+    <div class="status-badge">💪 <span id="enemy-str-val">0</span></div>
+    <span id="intent-icon" style="font-size:22px">⚔️</span>
+  </div>
+  <div id="intent-label">—</div>
+</div>
+
+<!-- Player Stats -->
+<div id="player-stats">
+  <div id="player-name">SHADOW WALKER</div>
+  <div class="hp-bar-wrap"><div class="hp-bar-fill" id="player-hp-fill" style="width:100%"></div></div>
+  <div class="hp-label" id="player-hp-label">75 / 75</div>
+  <div id="armor-badge">🛡 <span id="player-armor-val">0</span></div>
+  <div id="energy-row"></div>
+</div>
+
+<!-- Round Counter -->
+<div id="round-counter"><div id="round-lbl">ROUND</div><div id="round-num">1</div></div>
+<button id="sd-lb-btn">LEADERBOARD</button>
+
+<!-- Action Bar -->
+<div id="action-bar">
+  <div id="deck-count-btn">📚 Draw: <span id="draw-count">20</span></div>
+  <div id="discard-disp">🗑 Discard: <span id="discard-count-val">0</span></div>
+  <button class="action-btn" id="map-btn">🗺 Map</button>
+  <button class="action-btn" id="end-turn-btn">End Turn ▶</button>
+</div>
+
+<!-- Hand Zone -->
+<div id="hand-zone"></div>
+
+<!-- Turn Banner -->
+<div id="turn-banner">YOUR TURN</div>
+
+<!-- OASIS Brand -->
+<div id="oasis-brand">✦ OASIS</div>
+
+<!-- Wallet -->
+<button id="wallet-btn">🔗 Connect Klever</button>
+
+<!-- Message Overlay -->
+<div id="msg-overlay">
+  <div id="msg-box">
+    <div id="msg-title">Shadow Deck</div>
+    <div id="msg-body">Venture into the void...</div>
+    <button class="overlay-btn" id="msg-btn">Continue</button>
+  </div>
+</div>
+
+<!-- Map Overlay -->
+<div id="map-overlay">
+  <div id="map-box">
+    <div id="map-title">⬡ The Shadow Realm</div>
+    <div id="map-nodes"></div>
+    <button class="overlay-btn" id="map-close">Close</button>
+  </div>
+</div>
+
+<!-- Reward Overlay -->
+<div id="reward-overlay">
+  <div id="reward-box">
+    <div id="reward-title">✦ Choose a Card ✦</div>
+    <div id="reward-cards"></div>
+    <button class="overlay-btn" id="reward-skip">Skip Reward</button>
+  </div>
+</div>
+
+<div id="sd-lb-overlay">
+  <div id="sd-lb-panel">
+    <h2>SHADOW DECK</h2>
+    <div id="sd-lb-sub">LOCAL LEADERBOARD</div>
+    <div id="sd-lb-bestrow">
+      <span>BEST STREAK: <strong id="sd-lb-str">—</strong></span>
+      <span>WINS/LOSSES: <strong id="sd-lb-wl">—</strong></span>
+      <span>MAX HIT: <strong id="sd-lb-mh">—</strong></span>
+    </div>
+    <div id="sd-lb-entries"></div>
+    <div id="sd-lb-btns">
+      <button class="sd-lb-act" id="sd-lb-close">CLOSE</button>
+      <button class="sd-lb-act" id="sd-lb-clr">CLEAR SCORES</button>
+    </div>
+  </div>
+</div>
+<!-- Intro Screen -->
+<div id="intro-screen">
+  <div id="intro-title">SHADOW DECK</div>
+  <div id="intro-tagline">A Roguelike Card Battler</div>
+  <button id="intro-draw-btn">DRAW YOUR FATE</button>
+  <div style="position:absolute;bottom:20px;left:50%;transform:translateX(-50%);
+    font-family:'Rajdhani',sans-serif;font-size:11px;color:rgba(255,215,0,.4);
+    letter-spacing:2px;">WebGPU EDITION · v4.0</div>
+</div>
+
+<!-- Victory Overlay -->
+<div id="victory-overlay">
+  <div id="victory-title">VICTORY!</div>
+  <div class="end-stats" id="victory-stats"></div>
+  <button class="overlay-btn" onclick="victoryNext()">Claim Reward →</button>
+</div>
+
+<!-- Defeat Overlay -->
+<div id="defeat-overlay">
+  <div id="defeat-title">DEFEATED</div>
+  <div class="end-stats" id="defeat-stats"></div>
+  <button class="overlay-btn" onclick="resetGame()">Rise Again</button>
+</div>
+
+<!-- WebGPU Fallback -->
+<div id="gpu-fallback" style="display:none;position:fixed;inset:0;z-index:99999;
+  background:#000;color:#ff4444;font-family:'Cinzel',serif;
+  display:none;align-items:center;justify-content:center;flex-direction:column;text-align:center;padding:40px;">
+  <div style="font-size:48px;margin-bottom:20px;">⚠</div>
+  <div style="font-size:24px;margin-bottom:12px;">WebGPU Not Supported</div>
+  <div style="color:#888;font-size:14px;max-width:400px;">
+    Shadow Deck v4 requires WebGPU. Please use Chrome 113+, Edge 113+, or Firefox Nightly with WebGPU enabled.
+  </div>
+</div>
+
+<script src="https://unpkg.com/@klever/sdk-web"></script>
+<script>
+"use strict";
+// ═══════════════════════════════════════════════════════════════════
+// SHADOW DECK v4 — Raw WebGPU Roguelike Card Battler
+// ═══════════════════════════════════════════════════════════════════
+// ── Audio Engine ──────────────────────────────────────────────────
+const Audio = (function() {
+  let ctx = null;
+  function getCtx() {
+    if (!ctx) try { ctx = new (window.AudioContext||window.webkitAudioContext)(); } catch(e) { console.error('Audio init:',e); }
+    return ctx;
+  }
+  function noise(dur, freq, vol) {
+    try {
+      const ac=getCtx(); if(!ac) return;
+      const buf=ac.createBuffer(1,Math.floor(ac.sampleRate*dur),ac.sampleRate);
+      const d=buf.getChannelData(0); for(let i=0;i<d.length;i++) d[i]=Math.random()*2-1;
+      const src=ac.createBufferSource(); src.buffer=buf;
+      const f=ac.createBiquadFilter(); f.type='lowpass'; f.frequency.value=freq;
+      const g=ac.createGain(); g.gain.setValueAtTime(vol,ac.currentTime);
+      g.gain.exponentialRampToValueAtTime(.001,ac.currentTime+dur);
+      src.connect(f); f.connect(g); g.connect(ac.destination); src.start(); src.stop(ac.currentTime+dur);
+    } catch(e) { console.error('Audio noise:',e); }
+  }
+  function tone(freq, dur, vol, type) {
+    try {
+      const ac=getCtx(); if(!ac) return;
+      const o=ac.createOscillator(); o.type=type||'sine'; o.frequency.setValueAtTime(freq,ac.currentTime);
+      const g=ac.createGain(); g.gain.setValueAtTime(vol,ac.currentTime);
+      g.gain.exponentialRampToValueAtTime(.001,ac.currentTime+dur);
+      o.connect(g); g.connect(ac.destination); o.start(); o.stop(ac.currentTime+dur);
+    } catch(e) { console.error('Audio tone:',e); }
+  }
+  return {
+    draw()    { noise(.3,800,.3); },
+    play()    { noise(.08,200,.5); tone(160,.08,.3); },
+    attack()  { tone(330,.1,.4,'sawtooth'); noise(.05,600,.2); },
+    block()   { noise(.15,150,.4); tone(80,.15,.3); },
+    hover()   { try { const ac=getCtx(); if(!ac) return; const o=ac.createOscillator(); o.type='sine';
+                  o.frequency.setValueAtTime(1200,ac.currentTime); o.frequency.exponentialRampToValueAtTime(800,ac.currentTime+.08);
+                  const g=ac.createGain(); g.gain.setValueAtTime(.04,ac.currentTime); g.gain.exponentialRampToValueAtTime(.001,ac.currentTime+.08);
+                  o.connect(g); g.connect(ac.destination); o.start(); o.stop(ac.currentTime+.08); } catch(e) { console.error('hover audio:',e); } },
+    victory() { [262,330,392,523,659].forEach((f,i)=>setTimeout(()=>{tone(f,.5,.28,'triangle');tone(f*2,.3,.1);},i*130)); },
+    defeat()  { [220,196,165,140].forEach((f,i)=>setTimeout(()=>tone(f,.6,.25,'sawtooth'),i*160)); },
+    hurt()    { tone(80,.2,.4,'sawtooth'); },
+    whoosh()  { noise(.15,400,.3); tone(200,.15,.2,'sine'); },
+  };
+})();
+
+// ── Card Definitions ──────────────────────────────────────────────
+const STARTER_DECK = [
+  {id:'strike',    name:'Strike',      cost:1,type:'Attack',effect:'Deal 8 damage.',             dmg:8},
+  {id:'strike',    name:'Strike',      cost:1,type:'Attack',effect:'Deal 8 damage.',             dmg:8},
+  {id:'strike',    name:'Strike',      cost:1,type:'Attack',effect:'Deal 8 damage.',             dmg:8},
+  {id:'strike',    name:'Strike',      cost:1,type:'Attack',effect:'Deal 8 damage.',             dmg:8},
+  {id:'strike',    name:'Strike',      cost:1,type:'Attack',effect:'Deal 8 damage.',             dmg:8},
+  {id:'defend',    name:'Defend',      cost:1,type:'Skill', effect:'Gain 8 Armor.',              armor:8},
+  {id:'defend',    name:'Defend',      cost:1,type:'Skill', effect:'Gain 8 Armor.',              armor:8},
+  {id:'defend',    name:'Defend',      cost:1,type:'Skill', effect:'Gain 8 Armor.',              armor:8},
+  {id:'shadowstep',name:'Shadow Step', cost:1,type:'Skill', effect:'Draw 2 cards.',              draw:2},
+  {id:'shadowstep',name:'Shadow Step', cost:1,type:'Skill', effect:'Draw 2 cards.',              draw:2},
+  {id:'voidslash', name:'Void Slash',  cost:2,type:'Attack',effect:'Deal 12 damage.',            dmg:12},
+  {id:'voidslash', name:'Void Slash',  cost:2,type:'Attack',effect:'Deal 12 damage.',            dmg:12},
+  {id:'darkpulse', name:'Dark Pulse',  cost:2,type:'Attack',effect:'Deal 6 damage.',             dmg:6},
+  {id:'darkpulse', name:'Dark Pulse',  cost:2,type:'Attack',effect:'Deal 6 damage.',             dmg:6},
+  {id:'fade',      name:'Fade',        cost:1,type:'Skill', effect:'Immune this turn.',          immune:true},
+];
+const REWARD_POOL = [
+  {id:'voidstrike', name:'Void Strike',  cost:2,type:'Attack',effect:'Deal 15 damage.',           dmg:15},
+  {id:'shadowclone',name:'Shadow Clone', cost:2,type:'Skill', effect:'Copy last card played.',    clone:true},
+  {id:'darkness',   name:'Darkness',     cost:1,type:'Skill', effect:'Enemy -1 Strength.',        debuff:'str',val:-1},
+  {id:'deathmk',    name:'Death Mark',   cost:2,type:'Power', effect:'Marked enemies take +50% dmg.',deathmark:true},
+  {id:'soulrip',    name:'Soul Rip',     cost:1,type:'Attack',effect:'Deal 7 dmg, draw 1.',       dmg:7,draw:1},
+  {id:'armorshred', name:'Armor Shred',  cost:1,type:'Attack',effect:'Deal 6 dmg, shred armor.', dmg:6,shred:true},
+  {id:'nightmare',  name:'Nightmare',    cost:2,type:'Skill', effect:'Draw 3 cards.',             draw:3},
+  {id:'voidarmor',  name:'Void Armor',   cost:1,type:'Skill', effect:'Gain 14 Armor.',            armor:14},
+  {id:'eclipse',    name:'Eclipse',      cost:3,type:'Power', effect:'+3 dmg to all attacks.',    eclipsePower:true},
+  {id:'cursedblade',name:'Cursed Blade', cost:1,type:'Attack',effect:'Deal 10 dmg, take 2.',      dmg:10,selfDmg:2},
+  {id:'phantomstep',name:'Phantom Step', cost:0,type:'Skill', effect:'Draw 1, Gain 4 Armor.',     draw:1,armor:4},
+  {id:'voidbolt',   name:'Void Bolt',    cost:1,type:'Attack',effect:'Deal 10 damage.',           dmg:10},
+];
+const TYPE_COLORS = {
+  Attack:{bg:'#3a0808',accent:'#ff4444',rgb:[1,.1,.1]},
+  Skill: {bg:'#08143a',accent:'#4488ff',rgb:[.1,.2,.9]},
+  Power: {bg:'#2a2200',accent:'#ffcc00',rgb:[.8,.7,0]},
+  Curse: {bg:'#1a0020',accent:'#cc44ff',rgb:[.6,.1,1]},
+};
+// ── Enemy Definitions ─────────────────────────────────────────────
+const ENEMIES = {
+  'Shadow Lurker':   {hp:30,maxHp:30,str:0,armor:4,
+    actions:[{type:'attack',val:7,label:'Slash 7',icon:'⚔️'},{type:'attack',val:7,label:'Slash 7',icon:'⚔️'},{type:'defend',val:8,label:'Guard 8',icon:'🛡'}]},
+  'Void Wraith':     {hp:40,maxHp:40,str:1,armor:0,
+    actions:[{type:'attack',val:10,label:'Strike 10',icon:'⚔️'},{type:'attack',val:8,label:'Bite 8',icon:'💀'},{type:'buff',val:1,label:'Rage +1',icon:'💪'}]},
+  'Stone Golem':     {hp:55,maxHp:55,str:0,armor:8,
+    actions:[{type:'attack',val:12,label:'Smash 12',icon:'⚔️'},{type:'defend',val:12,label:'Harden 12',icon:'🛡'},{type:'attack',val:18,label:'Crush 18',icon:'💀'}]},
+  'Void Sentinel':   {hp:60,maxHp:60,str:2,armor:0,
+    actions:[{type:'attack',val:14,label:'Smash 14',icon:'💀'},{type:'defend',val:10,label:'Fortify 10',icon:'🛡'},{type:'attack',val:9,label:'Swipe 9',icon:'⚔️'},{type:'buff',val:2,label:'Empower +2',icon:'💪'}]},
+  'The Corrupted':   {hp:45,maxHp:45,str:1,armor:0,
+    actions:[{type:'attack',val:12,label:'Corrupt 12',icon:'⚔️'},{type:'attack',val:8,label:'Slash 8',icon:'⚔️'},{type:'defend',val:6,label:'Block 6',icon:'🛡'},{type:'attack',val:15,label:'Heavy 15',icon:'💀'}]},
+  'The Undying':     {hp:100,maxHp:100,str:3,armor:5,
+    actions:[{type:'attack',val:20,label:'Crush 20',icon:'💀'},{type:'attack',val:12,label:'Slash 12',icon:'⚔️'},{type:'defend',val:15,label:'Wall 15',icon:'🛡'},{type:'attack',val:8,label:'Bite 8',icon:'⚔️'}]},
+};
+const MAP_NODES = [
+  {type:'combat',label:'Combat',    icon:'⚔️', enemy:'Shadow Lurker'},
+  {type:'rest',  label:'Rest Site', icon:'🔥', heal:15},
+  {type:'combat',label:'Combat',    icon:'⚔️', enemy:'Void Wraith'},
+  {type:'elite', label:'Elite',     icon:'💀', enemy:'Stone Golem',elite:true},
+  {type:'shop',  label:'Shop',      icon:'💰', heal:5},
+  {type:'combat',label:'Combat',    icon:'⚔️', enemy:'The Corrupted'},
+  {type:'elite', label:'Elite',     icon:'💀', enemy:'Void Sentinel',elite:true},
+  {type:'boss',  label:'BOSS',      icon:'👁',  enemy:'The Undying'},
+];
+
+// ── Game State ────────────────────────────────────────────────────
+const GS = {
+  player:{hp:75,maxHp:75,armor:0,energy:3,maxEnergy:3,str:0,immune:false,eclipseBonus:0,deathMark:false},
+  enemy:null, enemyAI:null,
+  drawPile:[], discardPile:[], hand:[],
+  fullDeck:[], inCombat:false, turn:0,
+  mapNode:0, visited:[], lastCardPlayed:null, animating:false,
+};
+
+// ── Mat4 Math ─────────────────────────────────────────────────────
+function v3norm(v){const l=Math.sqrt(v[0]*v[0]+v[1]*v[1]+v[2]*v[2])||1;return[v[0]/l,v[1]/l,v[2]/l];}
+function v3cross(a,b){return[a[1]*b[2]-a[2]*b[1],a[2]*b[0]-a[0]*b[2],a[0]*b[1]-a[1]*b[0]];}
+function v3dot(a,b){return a[0]*b[0]+a[1]*b[1]+a[2]*b[2];}
+const m4={
+  id(){return new Float32Array([1,0,0,0, 0,1,0,0, 0,0,1,0, 0,0,0,1]);},
+  mul(a,b){
+    const o=new Float32Array(16);
+    for(let i=0;i<4;i++) for(let j=0;j<4;j++){
+      let s=0; for(let k=0;k<4;k++) s+=a[i*4+k]*b[k*4+j]; o[i*4+j]=s;
+    }
+    return o;
+  },
+  persp(fov,asp,n,f){
+    const t=Math.tan(fov/2),o=new Float32Array(16);
+    o[0]=1/(asp*t); o[5]=1/t;
+    o[10]=(f+n)/(n-f); o[11]=-1; o[14]=2*f*n/(n-f);
+    return o;
+  },
+  lookAt(eye,ctr){
+    const fwd=v3norm([ctr[0]-eye[0],ctr[1]-eye[1],ctr[2]-eye[2]]);
+    const rgt=v3norm(v3cross(fwd,[0,1,0]));
+    const up2=v3cross(rgt,fwd);
+    return new Float32Array([
+      rgt[0],up2[0],-fwd[0],0,
+      rgt[1],up2[1],-fwd[1],0,
+      rgt[2],up2[2],-fwd[2],0,
+      -v3dot(rgt,eye),-v3dot(up2,eye),v3dot(fwd,eye),1
+    ]);
+  },
+  trans(tx,ty,tz){const o=m4.id();o[12]=tx;o[13]=ty;o[14]=tz;return o;},
+  rotY(a){const c=Math.cos(a),s=Math.sin(a),o=m4.id();o[0]=c;o[2]=s;o[8]=-s;o[10]=c;return o;},
+  rotZ(a){const c=Math.cos(a),s=Math.sin(a),o=m4.id();o[0]=c;o[1]=s;o[4]=-s;o[5]=c;return o;},
+  rotX(a){const c=Math.cos(a),s=Math.sin(a),o=m4.id();o[5]=c;o[6]=s;o[9]=-s;o[10]=c;return o;},
+  scale(sx,sy,sz){const o=m4.id();o[0]=sx;o[5]=sy;o[10]=sz;return o;},
+};
+// ── WGSL Shaders ──────────────────────────────────────────────────
+const TABLE_VERT = `
+struct Uniforms { mvp: mat4x4f, time: f32, _pad: vec3f }
+@group(0) @binding(0) var<uniform> u: Uniforms;
+struct VOut { @builtin(position) pos: vec4f, @location(0) uv: vec2f, @location(1) world: vec2f }
+@vertex fn vs(@builtin(vertex_index) vid: u32) -> VOut {
+  var pos = array<vec3f,6>(
+    vec3f(-12,-0.01, 8), vec3f(12,-0.01, 8), vec3f(-12,-0.01,-8),
+    vec3f( 12,-0.01, 8), vec3f(12,-0.01,-8), vec3f(-12,-0.01,-8)
+  );
+  var o: VOut;
+  o.pos   = u.mvp * vec4f(pos[vid],1);
+  o.uv    = vec2f((pos[vid].x+12)/24, (pos[vid].z+8)/16);
+  o.world = pos[vid].xz;
+  return o;
+}`;
+const TABLE_FRAG = `
+@fragment fn fs(in: @location(0) uv: vec2f, @location(1) world: vec2f) -> @location(0) vec4f {
+  // Procedural felt: fiber lines + noise
+  var p  = world * 8.0;
+  var n1 = fract(sin(dot(floor(p),         vec2f(127.1,311.7)))*43758.5);
+  var n2 = fract(sin(dot(floor(p*3.0),     vec2f(269.5,183.3)))*43758.5);
+  var fx = step(0.92, fract(world.x * 25.0)) * 0.04;
+  var fy = step(0.92, fract(world.y * 25.0)) * 0.04;
+  var base = vec3f(0.038, 0.13, 0.052);
+  var col  = base + n1*0.012 + n2*0.006 - fx - fy;
+  // Center glow
+  var d = length(world * vec2f(0.07,0.1));
+  col  += vec3f(0.008,0.03,0.01) * max(0.0, 1.0-d);
+  // Vignette
+  var ctr = uv - vec2f(0.5);
+  col  *= max(0.0, 1.0 - dot(ctr,ctr)*1.2);
+  return vec4f(col, 1.0);
+}`;
+
+const CARD_VERT = `
+struct Uniforms {
+  mvp:       mat4x4f,
+  typeColor: vec4f,
+  time:      f32,
+  holo:      f32,
+  glow:      f32,
+  _pad:      f32,
+}
+@group(0) @binding(0) var<uniform> u: Uniforms;
+struct VIn  { @location(0) pos: vec3f, @location(1) uv: vec2f }
+struct VOut { @builtin(position) pos: vec4f, @location(0) uv: vec2f, @location(1) worldPos: vec3f }
+@vertex fn vs(v: VIn) -> VOut {
+  var o: VOut;
+  o.pos      = u.mvp * vec4f(v.pos, 1.0);
+  o.uv       = v.uv;
+  o.worldPos = v.pos;
+  return o;
+}`;
+
+const CARD_FRAG = `
+struct Uniforms {
+  mvp:       mat4x4f,
+  typeColor: vec4f,
+  time:      f32,
+  holo:      f32,
+  glow:      f32,
+  _pad:      f32,
+}
+@group(0) @binding(0) var<uniform> u: Uniforms;
+@group(0) @binding(1) var faceTex:   texture_2d<f32>;
+@group(0) @binding(2) var faceSamp:  sampler;
+@fragment fn fs(in: @location(0) uv: vec2f, @location(1) worldPos: vec3f) -> @location(0) vec4f {
+  var c = textureSample(faceTex, faceSamp, in.uv);
+  // Holographic shimmer overlay
+  if (u.holo > 0.01) {
+    var h  = u.holo;
+    var t  = u.time;
+    var hu = in.uv + vec2f(t*0.22, t*0.15);
+    var r  = 0.5 + 0.5*sin(hu.x*7.0 + t*2.0);
+    var g2 = 0.5 + 0.5*sin(hu.y*5.0 + t*1.5 + 2.1);
+    var b  = 0.5 + 0.5*sin((hu.x+hu.y)*6.0 + t*3.0 + 4.2);
+    c = vec4f(c.rgb + vec3f(r,g2,b)*h*0.18, c.a);
+  }
+  // Edge glow (type color on border pixels)
+  var ed = min(min(in.uv.x, 1.0-in.uv.x), min(in.uv.y, 1.0-in.uv.y));
+  var eg = smoothstep(0.0, 0.06, ed);
+  c      = vec4f(mix(u.typeColor.rgb * u.glow * 2.5, c.rgb, eg), c.a);
+  // Slight ambient + view highlight
+  var ndl = clamp(dot(normalize(worldPos), vec3f(0.2,1.0,0.4)), 0.0, 1.0);
+  c       = vec4f(c.rgb * (0.7 + ndl*0.3), c.a);
+  return c;
+}`;
+
+const DECK_FRAG = `
+struct Uniforms { mvp: mat4x4f, typeColor: vec4f, time: f32, holo: f32, glow: f32, _pad: f32 }
+@group(0) @binding(0) var<uniform> u: Uniforms;
+@group(0) @binding(1) var faceTex: texture_2d<f32>;
+@group(0) @binding(2) var faceSamp: sampler;
+@fragment fn fs(in: @location(0) uv: vec2f, @location(1) worldPos: vec3f) -> @location(0) vec4f {
+  var c = textureSample(faceTex, faceSamp, in.uv);
+  var ed = min(min(in.uv.x, 1.0-in.uv.x), min(in.uv.y, 1.0-in.uv.y));
+  var eg = smoothstep(0.0, 0.06, ed);
+  c = vec4f(mix(vec3f(0.2,0.05,0.4) * 1.5, c.rgb, eg), c.a);
+  return c;
+}`;
+// ── WebGPU State ──────────────────────────────────────────────────
+let gpu = null; // { device, context, format }
+let tablePipeline=null, tableUniBuf=null, tableBindGroup=null;
+let cardPipeline=null;
+let deckPipeline=null;
+const cardObjs = []; // active card render objects in hand
+const CARD_W=1.1, CARD_H=1.6; // card dimensions in world units
+// Shared quad vertex data (will be uploaded once)
+let quadVB=null, deckQuadVB=null;
+// Texture cache: card type → GPUTexture
+const texCache = {};
+let backTex=null;
+// Camera
+const CAM_EYE=[0,14,7], CAM_CTR=[0,0,0];
+let projMat=null, viewMat=null;
+let canvasW=0, canvasH=0;
+
+// ── WebGPU Init ───────────────────────────────────────────────────
+async function initWebGPU() {
+  const canvas = document.getElementById('gpuCanvas');
+  if (!navigator.gpu) { showGPUFallback(); return false; }
+  let adapter, device;
+  try {
+    adapter = await navigator.gpu.requestAdapter({powerPreference:'high-performance'});
+    if (!adapter) { showGPUFallback(); return false; }
+    device  = await adapter.requestDevice();
+  } catch(e) { console.error('WebGPU device request failed:',e); showGPUFallback(); return false; }
+
+  const context = canvas.getContext('webgpu');
+  if (!context) { showGPUFallback(); return false; }
+  const format = navigator.gpu.getPreferredCanvasFormat();
+  context.configure({device, format, alphaMode:'opaque'});
+  gpu = {device, context, format};
+
+  resizeCanvas();
+  window.addEventListener('resize', resizeCanvas);
+
+  // Shared card quad (horizontal in XZ plane)
+  const verts = new Float32Array([
+    // pos(xyz)              uv
+    -CARD_W/2, 0, -CARD_H/2,  0,0,
+     CARD_W/2, 0, -CARD_H/2,  1,0,
+    -CARD_W/2, 0,  CARD_H/2,  0,1,
+     CARD_W/2, 0,  CARD_H/2,  1,1,
+  ]);
+  quadVB = gpu.device.createBuffer({size:verts.byteLength, usage:GPUBufferUsage.VERTEX|GPUBufferUsage.COPY_DST});
+  gpu.device.queue.writeBuffer(quadVB,0,verts);
+
+  // Build pipelines
+  buildTablePipeline();
+  buildCardPipeline();
+  // Pre-gen textures for each card type + back
+  for(const type of Object.keys(TYPE_COLORS)) texCache[type]=makeCardTexGPU(type);
+  backTex = makeBackTexGPU();
+
+  return true;
+}
+
+function showGPUFallback() {
+  document.getElementById('gpu-fallback').style.display='flex';
+  document.getElementById('intro-screen').style.display='none';
+}
+
+function resizeCanvas() {
+  const canvas=document.getElementById('gpuCanvas');
+  canvasW=window.innerWidth; canvasH=window.innerHeight;
+  canvas.width=canvasW; canvas.height=canvasH;
+  projMat=m4.persp(50*Math.PI/180, canvasW/canvasH, 0.5, 80);
+  viewMat=m4.lookAt(CAM_EYE,CAM_CTR);
+}
+
+// ── Table Pipeline ────────────────────────────────────────────────
+function buildTablePipeline() {
+  const {device,format}=gpu;
+  const bgl=device.createBindGroupLayout({entries:[
+    {binding:0,visibility:GPUShaderStage.VERTEX|GPUShaderStage.FRAGMENT,buffer:{type:'uniform'}}
+  ]});
+  const pl=device.createPipelineLayout({bindGroupLayouts:[bgl]});
+  tablePipeline=device.createRenderPipeline({
+    layout:pl,
+    vertex:{module:device.createShaderModule({code:TABLE_VERT}),entryPoint:'vs'},
+    fragment:{module:device.createShaderModule({code:TABLE_FRAG}),entryPoint:'fs',
+      targets:[{format}]},
+    primitive:{topology:'triangle-list'},
+    depthStencil:{format:'depth24plus',depthWriteEnabled:true,depthCompare:'less'},
+  });
+  tableUniBuf=device.createBuffer({size:96,usage:GPUBufferUsage.UNIFORM|GPUBufferUsage.COPY_DST});
+  tableBindGroup=device.createBindGroup({layout:bgl,entries:[{binding:0,resource:{buffer:tableUniBuf}}]});
+}
+// ── Card Pipeline ─────────────────────────────────────────────────
+function buildCardPipeline() {
+  const {device,format}=gpu;
+  const bgl=device.createBindGroupLayout({entries:[
+    {binding:0,visibility:GPUShaderStage.VERTEX|GPUShaderStage.FRAGMENT,buffer:{type:'uniform'}},
+    {binding:1,visibility:GPUShaderStage.FRAGMENT,texture:{sampleType:'float'}},
+    {binding:2,visibility:GPUShaderStage.FRAGMENT,sampler:{type:'filtering'}},
+  ]});
+  const pl=device.createPipelineLayout({bindGroupLayouts:[bgl]});
+  const vmod=device.createShaderModule({code:CARD_VERT});
+  const fmod=device.createShaderModule({code:CARD_FRAG});
+  const dmod=device.createShaderModule({code:DECK_FRAG});
+  const vbuf=[{arrayStride:20,attributes:[
+    {shaderLocation:0,offset:0,format:'float32x3'},
+    {shaderLocation:1,offset:12,format:'float32x2'},
+  ]}];
+  const base={
+    layout:pl,
+    vertex:{module:vmod,entryPoint:'vs',buffers:vbuf},
+    primitive:{topology:'triangle-strip',stripIndexFormat:'uint16'},
+    depthStencil:{format:'depth24plus',depthWriteEnabled:true,depthCompare:'less'},
+  };
+  cardPipeline=device.createRenderPipeline({...base,
+    fragment:{module:fmod,entryPoint:'fs',targets:[{format,blend:{
+      color:{srcFactor:'src-alpha',dstFactor:'one-minus-src-alpha',operation:'add'},
+      alpha:{srcFactor:'one',dstFactor:'zero',operation:'add'},
+    }}]}
+  });
+  deckPipeline=device.createRenderPipeline({...base,
+    fragment:{module:dmod,entryPoint:'fs',targets:[{format}]}
+  });
+}
+
+// ── Texture Generation (Canvas 2D → GPUTexture) ───────────────────
+function makeCardTexGPU(type) {
+  const SZ=256, TH=360;
+  const tc=TYPE_COLORS[type]||TYPE_COLORS.Skill;
+  const cv=document.createElement('canvas'); cv.width=SZ; cv.height=TH;
+  const c=cv.getContext('2d');
+  // Background
+  const bg=c.createLinearGradient(0,0,SZ,TH);
+  bg.addColorStop(0,tc.bg); bg.addColorStop(.6,'#050510'); bg.addColorStop(1,'#000');
+  c.fillStyle=bg; c.fillRect(0,0,SZ,TH);
+  // Gold border
+  c.strokeStyle='#ffd700'; c.lineWidth=5; c.strokeRect(3,3,250,354);
+  c.strokeStyle=tc.accent; c.lineWidth=3; c.strokeRect(9,9,238,342);
+  c.strokeStyle='rgba(0,0,0,.7)'; c.lineWidth=2; c.strokeRect(13,13,230,334);
+  // Art area gradient
+  const ag=c.createLinearGradient(16,80,240,200);
+  const arts={Attack:['#3a0000','#7a0808','#cc2222'],Skill:['#000a2a','#082060','#1a6aaa'],
+               Power:['#1a0a00','#502800','#aa6600'],Curse:['#1a0020','#3a0050','#7a00aa']};
+  const ac2=arts[type]||arts.Skill;
+  ag.addColorStop(0,ac2[0]); ag.addColorStop(.5,ac2[1]); ag.addColorStop(1,ac2[2]);
+  c.fillStyle=ag; c.fillRect(16,80,224,120);
+  c.strokeStyle='rgba(255,215,0,.35)'; c.lineWidth=1; c.strokeRect(16,80,224,120);
+  // Art emoji
+  const em={Attack:'💥',Skill:'🔮',Power:'⚡',Curse:'💜'};
+  c.font='56px serif'; c.textAlign='center'; c.textBaseline='middle';
+  c.fillText(em[type]||'✦',128,140);
+  // Mana badge
+  c.beginPath(); c.arc(30,30,22,0,Math.PI*2);
+  const mg=c.createRadialGradient(25,25,2,30,30,22);
+  mg.addColorStop(0,'#fff8c0'); mg.addColorStop(.4,'#ffd700'); mg.addColorStop(1,'#aa8800');
+  c.fillStyle=mg; c.fill();
+  c.beginPath(); c.arc(30,30,18,0,Math.PI*2); c.fillStyle='rgba(0,0,0,.4)'; c.fill();
+  // Name area
+  c.fillStyle='#fff'; c.font='bold 15px serif'; c.textAlign='center'; c.textBaseline='alphabetic';
+  c.fillText(type.toUpperCase()+' CARD',128,72);
+  c.strokeStyle='rgba(255,215,0,.5)'; c.lineWidth=1;
+  c.beginPath(); c.moveTo(18,76); c.lineTo(238,76); c.stroke();
+  // Divider
+  c.strokeStyle='rgba(255,215,0,.4)'; c.lineWidth=1; c.globalAlpha=.8;
+  c.beginPath(); c.moveTo(18,206); c.lineTo(238,206); c.stroke(); c.globalAlpha=1;
+  // Type label
+  c.fillStyle=tc.accent; c.font='bold 11px sans-serif';
+  c.textAlign='center'; c.textBaseline='alphabetic'; c.fillText(type.toUpperCase(),128,344);
+  // Stars
+  c.fillStyle='#ffd700'; c.font='14px serif'; c.textAlign='right';
+  c.fillText('★★★',220,336);
+  return uploadCanvasToGPU(cv);
+}
+
+function makeCardFaceTexGPU(card) {
+  const SZ=256, TH=360;
+  const tc=TYPE_COLORS[card.type]||TYPE_COLORS.Skill;
+  const cv=document.createElement('canvas'); cv.width=SZ; cv.height=TH;
+  const c=cv.getContext('2d');
+  // Background
+  const bg=c.createLinearGradient(0,0,SZ,TH);
+  bg.addColorStop(0,tc.bg); bg.addColorStop(.6,'#050510'); bg.addColorStop(1,'#000');
+  c.fillStyle=bg; c.fillRect(0,0,SZ,TH);
+  c.strokeStyle='#ffd700'; c.lineWidth=5; c.strokeRect(3,3,250,354);
+  c.strokeStyle=tc.accent; c.lineWidth=3; c.strokeRect(9,9,238,342);
+  c.strokeStyle='rgba(0,0,0,.7)'; c.lineWidth=2; c.strokeRect(13,13,230,334);
+  // Art area
+  const arts={Attack:['#3a0000','#7a0808','#cc2222'],Skill:['#000a2a','#082060','#1a6aaa'],
+               Power:['#1a0a00','#502800','#aa6600'],Curse:['#1a0020','#3a0050','#7a00aa']};
+  const ac2=arts[card.type]||arts.Skill;
+  const ag=c.createLinearGradient(16,80,240,200);
+  ag.addColorStop(0,ac2[0]); ag.addColorStop(.5,ac2[1]); ag.addColorStop(1,ac2[2]);
+  c.fillStyle=ag; c.fillRect(16,80,224,120);
+  c.strokeStyle='rgba(255,215,0,.35)'; c.lineWidth=1; c.strokeRect(16,80,224,120);
+  const em={Attack:'💥',Skill:'🔮',Power:'⚡',Curse:'💜'};
+  c.font='56px serif'; c.textAlign='center'; c.textBaseline='middle'; c.fillText(em[card.type]||'✦',128,140);
+  // Mana badge
+  c.beginPath(); c.arc(30,30,22,0,Math.PI*2);
+  const mg=c.createRadialGradient(25,25,2,30,30,22);
+  mg.addColorStop(0,'#fff8c0'); mg.addColorStop(.4,'#ffd700'); mg.addColorStop(1,'#aa8800');
+  c.fillStyle=mg; c.fill();
+  c.beginPath(); c.arc(30,30,18,0,Math.PI*2); c.fillStyle='rgba(0,0,0,.4)'; c.fill();
+  c.fillStyle='#fff'; c.font='bold 20px sans-serif'; c.textAlign='center'; c.textBaseline='middle';
+  c.fillText(String(card.cost),30,31);
+  // Card name
+  c.fillStyle='#fff'; c.font='bold 15px serif'; c.textAlign='center'; c.textBaseline='alphabetic';
+  c.fillText(card.name.toUpperCase(),128,72);
+  c.strokeStyle='rgba(255,215,0,.5)'; c.lineWidth=1;
+  c.beginPath(); c.moveTo(18,76); c.lineTo(238,76); c.stroke();
+  c.strokeStyle='rgba(255,215,0,.4)'; c.lineWidth=1; c.globalAlpha=.8;
+  c.beginPath(); c.moveTo(18,206); c.lineTo(238,206); c.stroke(); c.globalAlpha=1;
+  // Effect text
+  c.fillStyle='#ddd'; c.font='13px sans-serif'; c.textAlign='center'; c.textBaseline='top';
+  const words=card.effect.split(' '); let line='',yy=214;
+  words.forEach(w=>{ const t=line?line+' '+w:w;
+    if(c.measureText(t).width>216){c.fillText(line,128,yy);line=w;yy+=18;}else line=t; });
+  if(line) c.fillText(line,128,yy);
+  // Type + stars
+  c.fillStyle=tc.accent; c.font='bold 11px sans-serif'; c.textAlign='center'; c.textBaseline='alphabetic';
+  c.fillText(card.type.toUpperCase(),128,344);
+  c.fillStyle='#ffd700'; c.font='14px serif'; c.textAlign='right';
+  const stars=Math.min(card.cost,3);
+  c.fillText('★'.repeat(stars)+'☆'.repeat(3-stars),220,336);
+  return uploadCanvasToGPU(cv);
+}
+function makeBackTexGPU() {
+  const cv=document.createElement('canvas'); cv.width=128; cv.height=180;
+  const c=cv.getContext('2d');
+  const g=c.createLinearGradient(0,0,128,180);
+  g.addColorStop(0,'#1a0040'); g.addColorStop(1,'#0a0020');
+  c.fillStyle=g; c.fillRect(0,0,128,180);
+  c.strokeStyle='#6a00cc'; c.lineWidth=4; c.strokeRect(4,4,120,172);
+  c.fillStyle='#5500aa'; c.font='bold 56px serif';
+  c.textAlign='center'; c.textBaseline='middle'; c.fillText('☽',64,90);
+  c.strokeStyle='rgba(120,0,220,.4)'; c.lineWidth=1;
+  for(let r=20;r<70;r+=14){c.beginPath();c.arc(64,90,r,0,Math.PI*2);c.stroke();}
+  return uploadCanvasToGPU(cv);
+}
+
+function uploadCanvasToGPU(cv) {
+  const {device}=gpu;
+  const tex=device.createTexture({
+    size:[cv.width,cv.height,1],
+    format:'rgba8unorm',
+    usage:GPUTextureUsage.TEXTURE_BINDING|GPUTextureUsage.COPY_DST|GPUTextureUsage.RENDER_ATTACHMENT,
+  });
+  device.queue.copyExternalImageToTexture({source:cv},{texture:tex},[cv.width,cv.height]);
+  return tex;
+}
+
+function makeCardSampler() {
+  return gpu.device.createSampler({magFilter:'linear',minFilter:'linear',mipmapFilter:'linear'});
+}
+const _samplerCache={};
+function getSampler() {
+  if(!_samplerCache.s) _samplerCache.s=makeCardSampler();
+  return _samplerCache.s;
+}
+
+// ── Card Object (GPU) ─────────────────────────────────────────────
+// Each card in hand has:
+// {data, tex, uniBuf, bindGroup, x,y,z, rotY,rotZ, scaleX,scaleY,scaleZ,
+//  targetX,targetY,targetZ,targetRotY,targetRotZ,targetSX,targetSY,targetSZ,
+//  startTime,duration,holo,glow, htmlEl}
+const CARD_UNI_SIZE=128; // 16(mvp)*4 + 4(typeColor)*4 + 4*4 = 112 → pad to 128
+
+function createCardObj(cardData, tex) {
+  const {device}=gpu;
+  const uniBuf=device.createBuffer({size:CARD_UNI_SIZE,usage:GPUBufferUsage.UNIFORM|GPUBufferUsage.COPY_DST});
+  const bgl=cardPipeline.getBindGroupLayout(0);
+  const bindGroup=device.createBindGroup({layout:bgl,entries:[
+    {binding:0,resource:{buffer:uniBuf}},
+    {binding:1,resource:tex.createView()},
+    {binding:2,resource:getSampler()},
+  ]});
+  return {
+    data:cardData, tex, uniBuf, bindGroup,
+    x:0,y:0,z:0, rotY:0,rotZ:0, scaleX:1,scaleY:1,scaleZ:1,
+    targetX:0,targetY:0.1,targetZ:0, targetRotY:0,targetRotZ:0, targetSX:1,targetSY:1,targetSZ:1,
+    startTime:performance.now(), duration:400,
+    holo:0, glow:1, htmlEl:null,
+  };
+}
+
+function updateCardUniform(co, t) {
+  const tc=TYPE_COLORS[co.data.type]||TYPE_COLORS.Attack;
+  // MVP: proj * view * model
+  const model=m4.mul(m4.mul(m4.mul(
+    m4.trans(co.x,co.y,co.z),
+    m4.rotY(co.rotY)),
+    m4.rotZ(co.rotZ)),
+    m4.scale(co.scaleX,co.scaleY,co.scaleZ));
+  const mvp=m4.mul(m4.mul(projMat,viewMat),model);
+  const data=new Float32Array(32); // 128 bytes
+  data.set(mvp,0);
+  data[16]=tc.rgb[0]; data[17]=tc.rgb[1]; data[18]=tc.rgb[2]; data[19]=1;
+  data[20]=t; data[21]=co.holo; data[22]=co.glow; data[23]=0;
+  gpu.device.queue.writeBuffer(co.uniBuf,0,data);
+}
+
+function easeOut(t){return 1-Math.pow(1-t,3);}
+
+function tickCardAnims() {
+  const now=performance.now();
+  for(const co of cardObjs) {
+    const elapsed=now-co.startTime;
+    const te=Math.min(easeOut(elapsed/co.duration),1);
+    co.x   +=(co.targetX  -co.x)  *te;
+    co.y   +=(co.targetY  -co.y)  *te;
+    co.z   +=(co.targetZ  -co.z)  *te;
+    co.rotY+=(co.targetRotY-co.rotY)*te;
+    co.rotZ+=(co.targetRotZ-co.rotZ)*te;
+    co.scaleX+=(co.targetSX-co.scaleX)*te;
+    co.scaleY+=(co.targetSY-co.scaleY)*te;
+    co.scaleZ+=(co.targetSZ-co.scaleZ)*te;
+  }
+}
+
+function animateCardTo(co,tx,ty,tz,try2,trz,tSX,tSY,tSZ,dur) {
+  co.targetX=tx;co.targetY=ty;co.targetZ=tz;
+  co.targetRotY=try2;co.targetRotZ=trz;
+  co.targetSX=tSX;co.targetSY=tSY;co.targetSZ=tSZ;
+  co.startTime=performance.now();co.duration=dur||380;
+}
+// ── Hand Layout ───────────────────────────────────────────────────
+function getHandPos(idx, total) {
+  const spread=Math.min(total*1.6,9);
+  const xStart=-spread/2;
+  const x=total>1?xStart+(spread/(total-1))*idx:0;
+  const arc=(idx/Math.max(total-1,1))-.5;
+  return {x, y:0.08, z:5.2+arc*arc*.9, rotZ:-arc*.22, rotY:arc*.06};
+}
+
+function layoutHand() {
+  cardObjs.forEach((co,i)=>{
+    const hp=getHandPos(i,cardObjs.length);
+    animateCardTo(co,hp.x,hp.y,hp.z,hp.rotY,hp.rotZ,1,1,1,320);
+    co.holo=.4;
+  });
+  rebuildHandHTML();
+}
+
+function rebuildHandHTML() {
+  const zone=document.getElementById('hand-zone');
+  zone.innerHTML='';
+  GS.hand.forEach((card,i)=>{
+    const cv=document.createElement('canvas'); cv.width=84; cv.height=120;
+    // Draw card preview on 2D canvas for HTML overlay click target
+    drawCardMini(cv,card);
+    const btn=document.createElement('div'); btn.className='hand-card-btn';
+    btn.dataset.index=i;
+    const hint=document.createElement('div'); hint.className='card-key-hint';
+    hint.textContent=String(i+1);
+    btn.appendChild(cv); btn.appendChild(hint);
+    btn.addEventListener('pointerover',()=>hoverCard(i,true));
+    btn.addEventListener('pointerout', ()=>hoverCard(i,false));
+    btn.addEventListener('click',      ()=>playHandCard(i));
+    zone.appendChild(btn);
+    if(cardObjs[i]) cardObjs[i].htmlEl=btn;
+  });
+}
+
+function drawCardMini(cv, card) {
+  const tc=TYPE_COLORS[card.type]||TYPE_COLORS.Skill;
+  const c=cv.getContext('2d');
+  const g=c.createLinearGradient(0,0,84,120);
+  g.addColorStop(0,tc.bg); g.addColorStop(1,'#000');
+  c.fillStyle=g; c.fillRect(0,0,84,120);
+  c.strokeStyle='#ffd700'; c.lineWidth=2; c.strokeRect(1,1,82,118);
+  c.strokeStyle=tc.accent; c.lineWidth=1.5; c.strokeRect(4,4,76,112);
+  // Mana
+  c.beginPath(); c.arc(12,12,9,0,Math.PI*2);
+  c.fillStyle='#ffd700'; c.fill();
+  c.fillStyle='#000'; c.font='bold 11px sans-serif'; c.textAlign='center'; c.textBaseline='middle';
+  c.fillText(String(card.cost),12,12);
+  // Name
+  c.fillStyle='#fff'; c.font='bold 9px serif'; c.textAlign='center'; c.textBaseline='top';
+  c.fillText(card.name.toUpperCase().slice(0,12),42,26);
+  // Art
+  c.font='28px serif'; c.textBaseline='middle';
+  const em={Attack:'💥',Skill:'🔮',Power:'⚡',Curse:'💜'};
+  c.fillText(em[card.type]||'✦',42,62);
+  // Effect
+  c.fillStyle='#bbb'; c.font='7.5px sans-serif';
+  const words=card.effect.split(' '); let line='',yy=90;
+  words.forEach(w=>{ const t=line?line+' '+w:w;
+    if(c.measureText(t).width>70){c.fillText(line,42,yy);line=w;yy+=10;}else line=t; });
+  if(line) c.fillText(line,42,yy);
+  // Type bar
+  c.fillStyle=tc.accent; c.font='7px sans-serif'; c.textBaseline='alphabetic';
+  c.fillText(card.type.toUpperCase(),42,116);
+}
+
+// ── Hover & Glow ──────────────────────────────────────────────────
+let hoveredIdx=-1;
+function hoverCard(idx,enter) {
+  if(idx<0||idx>=cardObjs.length) return;
+  const co=cardObjs[idx];
+  const hp=getHandPos(idx,cardObjs.length);
+  const btns=document.querySelectorAll('.hand-card-btn');
+  if(btns[idx]) btns[idx].classList.toggle('selected',enter&&hoveredIdx===idx);
+  if(enter) {
+    if(hoveredIdx!==idx) Audio.hover();
+    hoveredIdx=idx;
+    animateCardTo(co,hp.x,hp.y+.7,hp.z-.3,hp.rotY,hp.rotZ,1.08,1.08,1.08,140);
+    co.holo=.9; co.glow=2.5;
+  } else {
+    if(hoveredIdx===idx) hoveredIdx=-1;
+    animateCardTo(co,hp.x,hp.y,hp.z,hp.rotY,hp.rotZ,1,1,1,140);
+    co.holo=.4; co.glow=1;
+  }
+}
+
+// ── Deal card to hand ─────────────────────────────────────────────
+function dealCardToHand(cardData, handIndex, total) {
+  const tex=makeCardFaceTexGPU(cardData);
+  const co=createCardObj(cardData,tex);
+  // Start from deck position
+  co.x=7.5; co.y=0.3; co.z=4.5; co.rotY=Math.PI; co.rotZ=0;
+  co.targetX=0; co.targetY=0.08; co.targetZ=5;
+  const hp=getHandPos(handIndex,total);
+  setTimeout(()=>{
+    Audio.draw();
+    animateCardTo(co,hp.x,hp.y,hp.z,hp.rotY,hp.rotZ,1,1,1,420);
+    co.holo=.4;
+  }, handIndex*130);
+  cardObjs.push(co);
+}
+// ── Particle Trail ────────────────────────────────────────────────
+function spawnParticles(cx,cy,color) {
+  for(let i=0;i<18;i++) {
+    const el=document.createElement('div'); el.className='particle';
+    const ang=Math.random()*Math.PI*2, spd=60+Math.random()*120;
+    el.style.cssText=`
+      left:${cx-5}px;top:${cy-5}px;width:10px;height:10px;
+      background:${color};opacity:.9;
+      --px:${Math.cos(ang)*spd}px;--py:${Math.sin(ang)*spd}px;
+      --dur:${.5+Math.random()*.5}s;animation-delay:${Math.random()*.1}s;`;
+    document.body.appendChild(el);
+    setTimeout(()=>el.remove(), 900);
+  }
+}
+
+// ── Float damage number ───────────────────────────────────────────
+function floatDamage(val, type, anchor) {
+  const el=document.createElement('div');
+  el.className='float-num '+(type==='atk'?'dmg-atk':type==='blk'?'dmg-blk':'dmg-heal');
+  el.textContent=(type==='heal'?'+':type==='blk'?'🛡':'-')+val;
+  const rect=anchor?anchor.getBoundingClientRect():{left:window.innerWidth/2,top:window.innerHeight/3};
+  el.style.left=(rect.left+rect.width/2-24+(Math.random()*40-20))+'px';
+  el.style.top =(rect.top+(Math.random()*20))+'px';
+  document.body.appendChild(el);
+  setTimeout(()=>el.remove(),1200);
+}
+
+// ── Play Card ─────────────────────────────────────────────────────
+function playHandCard(idx) {
+  if(!GS.inCombat||GS.animating) return;
+  if(idx<0||idx>=cardObjs.length) return;
+  const co=cardObjs[idx];
+  const card=co.data;
+  if(GS.player.energy<card.cost){
+    showMsg('Not Enough Energy','Need '+card.cost+' energy to play '+card.name+'.','OK');
+    return;
+  }
+  GS.animating=true;
+  GS.player.energy-=card.cost;
+  GS.lastCardPlayed=card;
+  Audio.play();
+  // Table flash
+  const tf=document.getElementById('table-flash');
+  const fc={Attack:'rgba(180,30,30,.25)',Skill:'rgba(30,80,180,.2)',Power:'rgba(180,140,0,.22)',Curse:'rgba(80,0,120,.25)'};
+  tf.style.background=fc[card.type]||fc.Skill;
+  tf.style.animation='none'; void tf.offsetHeight;
+  tf.style.animation='tableFlashAnim .55s ease-out forwards';
+  // Particle burst from card position
+  const btn=document.querySelectorAll('.hand-card-btn')[idx];
+  if(btn){const r=btn.getBoundingClientRect();
+    spawnParticles(r.left+r.width/2,r.top+r.height/2,TYPE_COLORS[card.type]?.accent||'#fff');}
+  // 3D fly toward center of table then fade
+  co.glow=3; co.holo=1;
+  animateCardTo(co,0,1.5,-1,0,0,1.4,1.4,1.4,280);
+  setTimeout(()=>animateCardTo(co,0,3,-3,0,0,.05,.05,.05,220),280);
+  // Remove from logical hand
+  cardObjs.splice(idx,1);
+  GS.hand.splice(idx,1);
+  GS.discardPile.push(card);
+  setTimeout(()=>{
+    try{co.uniBuf.destroy();}catch(e){console.error('card buf destroy:',e);}
+    applyCardEffect(card);
+    layoutHand();
+    updateUI();
+    GS.animating=false;
+  },380);
+  Audio.whoosh();
+}
+
+// ── Apply Card Effect ─────────────────────────────────────────────
+function applyCardEffect(card) {
+  const en=GS.enemy;
+  let dmg=(card.dmg||0)+GS.player.str+GS.player.eclipseBonus;
+  if(card.dmg){
+    if(en.deathMark) dmg=Math.floor(dmg*1.5);
+    const fd=Math.max(0,dmg-en.armor);
+    en.armor=Math.max(0,en.armor-dmg);
+    en.hp   =Math.max(0,en.hp-fd);
+    Audio.attack();
+    if(fd>0){ floatDamage(fd,'atk',document.getElementById('enemy-hp-fill')); if(fd>(_sdMaxHit||0)) window._sdMaxHit=fd; }
+  }
+  if(card.armor){
+    GS.player.armor+=card.armor; Audio.block();
+    floatDamage(card.armor,'blk',document.getElementById('player-hp-fill'));
+  }
+  if(card.draw)        for(let i=0;i<card.draw;i++) drawCard();
+  if(card.immune)      GS.player.immune=true;
+  if(card.shred)       en.armor=0;
+  if(card.debuff==='str') en.str=Math.max(0,en.str+(card.val||0));
+  if(card.eclipsePower)   GS.player.eclipseBonus+=3;
+  if(card.deathmark)      en.deathMark=true;
+  if(card.selfDmg)        { GS.player.hp=Math.max(0,GS.player.hp-card.selfDmg);
+    floatDamage(card.selfDmg,'atk',document.getElementById('player-hp-fill')); }
+  if(card.clone&&GS.lastCardPlayed&&GS.lastCardPlayed!==card){
+    const copy=Object.assign({},GS.lastCardPlayed);
+    GS.hand.push(copy);
+    dealCardToHand(copy,GS.hand.length-1,GS.hand.length);
+  }
+  checkCombatEnd();
+}
+
+// ── Draw / Shuffle ────────────────────────────────────────────────
+function shuffle(arr){
+  for(let i=arr.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[arr[i],arr[j]]=[arr[j],arr[i]];}
+  return arr;
+}
+function drawCard(){
+  if(!GS.drawPile.length){
+    if(!GS.discardPile.length) return;
+    GS.drawPile=shuffle(GS.discardPile.slice()); GS.discardPile=[];
+  }
+  if(!GS.drawPile.length) return;
+  const card=GS.drawPile.pop();
+  GS.hand.push(card);
+  dealCardToHand(card,GS.hand.length-1,GS.hand.length);
+  updateUI();
+}
+// ── Combat Flow ───────────────────────────────────────────────────
+function startCombat(enemyName) {
+  const def=ENEMIES[enemyName]||ENEMIES['Shadow Lurker'];
+  GS.enemy=Object.assign({},def,{name:enemyName,deathMark:false});
+  GS.enemyAI={actionIdx:0};
+  GS.inCombat=true; GS.turn=0;
+  GS.player.armor=0; GS.player.immune=false;
+  if(!GS.fullDeck.length) GS.fullDeck=STARTER_DECK.map(c=>Object.assign({},c));
+  GS.drawPile=shuffle(GS.fullDeck.slice()); GS.discardPile=[];
+  clearHand();
+  updateEnergyPips();
+  startPlayerTurn();
+}
+
+function clearHand() {
+  GS.hand=[];
+  cardObjs.forEach(co=>{try{co.uniBuf.destroy();}catch(e){console.error('clearHand:',e);}});
+  cardObjs.length=0;
+  document.getElementById('hand-zone').innerHTML='';
+}
+
+function startPlayerTurn() {
+  GS.turn++;
+  GS.player.energy=GS.player.maxEnergy;
+  GS.player.armor=0;
+  document.getElementById('round-num').textContent=GS.turn;
+  // Turn banner
+  const banner=document.getElementById('turn-banner');
+  banner.classList.remove('show'); void banner.offsetHeight;
+  banner.classList.add('show');
+  setTimeout(()=>banner.classList.remove('show'),2200);
+  // Draw 5
+  setTimeout(()=>{for(let i=0;i<5;i++) drawCard();}, 350);
+  setTimeout(()=>{
+    advanceEnemyIntent(); updateUI();
+    setTimeout(rebuildHandHTML,700);
+  },450);
+}
+
+function advanceEnemyIntent() {
+  if(!GS.enemy) return;
+  GS.enemyAI.actionIdx=Math.floor(Math.random()*GS.enemy.actions.length);
+}
+
+function endPlayerTurn() {
+  if(!GS.inCombat||GS.animating) return;
+  // Discard hand
+  GS.hand.forEach(c=>GS.discardPile.push(c));
+  GS.hand=[];
+  // Animate cards off screen
+  cardObjs.forEach(co=>{
+    animateCardTo(co,co.x+6,co.y+1.5,co.z,co.rotY+Math.PI*2,co.rotZ,.1,.1,.1,380);
+    setTimeout(()=>{try{co.uniBuf.destroy();}catch(e){console.error('discard:',e);}},420);
+  });
+  cardObjs.length=0;
+  document.getElementById('hand-zone').innerHTML='';
+  setTimeout(enemyTurn,560);
+}
+
+function enemyTurn() {
+  if(!GS.enemy||GS.enemy.hp<=0) return;
+  const act=GS.enemy.actions[GS.enemyAI.actionIdx];
+  setTimeout(()=>{
+    if(act.type==='attack'){
+      const dmg=act.val+GS.enemy.str;
+      if(!GS.player.immune){
+        const fd=Math.max(0,dmg-GS.player.armor);
+        GS.player.armor=Math.max(0,GS.player.armor-dmg);
+        GS.player.hp   =Math.max(0,GS.player.hp-fd);
+        Audio.hurt();
+        if(fd>0) floatDamage(fd,'atk',document.getElementById('player-hp-fill'));
+      }
+    } else if(act.type==='defend') { GS.enemy.armor+=act.val;
+    } else if(act.type==='buff')   { GS.enemy.str  +=act.val; }
+    GS.player.immune=false; updateUI();
+    if(GS.player.hp<=0){endCombat(false);}
+    else setTimeout(startPlayerTurn,460);
+  },600);
+}
+
+function checkCombatEnd() {
+  if(GS.enemy&&GS.enemy.hp<=0) setTimeout(()=>endCombat(true),620);
+}
+
+function endCombat(won) {
+  GS.inCombat=false; clearHand();
+  if(won){ Audio.victory(); GS.visited.push(GS.mapNode); showVictoryScreen(); sdHandleGameEnd(true); }
+  else   { Audio.defeat();  showDefeatScreen(); sdHandleGameEnd(false); }
+}
+
+// ── Victory / Defeat ──────────────────────────────────────────────
+function showVictoryScreen() {
+  const ov=document.getElementById('victory-overlay');
+  ov.querySelectorAll('.v-burst').forEach(el=>el.remove());
+  for(let i=0;i<8;i++){
+    const ang=(i/8)*Math.PI*2, dist=160+Math.random()*60;
+    const el=document.createElement('div'); el.className='v-burst';
+    const tc=Object.values(TYPE_COLORS); const col=tc[i%tc.length];
+    el.style.background=`linear-gradient(135deg,${col.bg},#111)`;
+    el.style.setProperty('--vx',Math.cos(ang)*dist+'px');
+    el.style.setProperty('--vy',Math.sin(ang)*dist+'px');
+    el.style.setProperty('--vr',(Math.random()*360-180)+'deg');
+    el.style.setProperty('--d',(i*.09)+'s');
+    ov.appendChild(el);
+  }
+  document.getElementById('victory-stats').innerHTML=
+    `Enemy defeated in ${GS.turn} turns<br>HP remaining: ${GS.player.hp} / ${GS.player.maxHp}`;
+  ov.classList.add('show');
+}
+function victoryNext(){document.getElementById('victory-overlay').classList.remove('show');showReward();}
+
+function showDefeatScreen() {
+  const ov=document.getElementById('defeat-overlay');
+  ov.querySelectorAll('.d-ash').forEach(el=>el.remove());
+  for(let i=0;i<7;i++){
+    const ang=(i/7)*Math.PI*2, dist=120+Math.random()*70;
+    const el=document.createElement('div'); el.className='d-ash';
+    el.style.background='linear-gradient(135deg,#3a0000,#000)';
+    el.style.setProperty('--vx',Math.cos(ang)*dist+'px');
+    el.style.setProperty('--vy',Math.sin(ang)*dist+'px');
+    el.style.setProperty('--vr',(Math.random()*120-60)+'deg');
+    el.style.setProperty('--d',(i*.1)+'s');
+    ov.appendChild(el);
+  }
+  document.getElementById('defeat-stats').innerHTML=
+    `Fell on turn ${GS.turn}<br>Enemy HP: ${GS.enemy?GS.enemy.hp:0}`;
+  ov.classList.add('show');
+}
+function resetGame(){
+  document.getElementById('defeat-overlay').classList.remove('show');
+  Object.assign(GS.player,{hp:75,maxHp:75,armor:0,energy:3,maxEnergy:3,str:0,immune:false,eclipseBonus:0});
+  GS.fullDeck=[]; GS.mapNode=0; GS.visited=[];
+  clearHand(); showMap();
+}
+// ── Map & Reward ──────────────────────────────────────────────────
+function showMap() {
+  const cont=document.getElementById('map-nodes'); cont.innerHTML='';
+  MAP_NODES.forEach((node,i)=>{
+    const btn=document.createElement('button');
+    btn.className='map-node-btn '+node.type;
+    btn.textContent=node.icon+' Node '+(i+1)+': '+node.label+(node.elite?' ★':'')+(node.boss?' ☠':'');
+    const vis=GS.visited.includes(i);
+    if(vis) btn.classList.add('visited');
+    if(i===GS.mapNode&&!vis) btn.style.boxShadow='0 0 16px rgba(255,220,100,.7)';
+    btn.addEventListener('click',()=>{
+      if(vis) return;
+      GS.mapNode=i;
+      document.getElementById('map-overlay').classList.remove('show');
+      handleMapNode(node);
+    });
+    cont.appendChild(btn);
+  });
+  document.getElementById('map-overlay').classList.add('show');
+}
+
+function advanceMap() {
+  GS.mapNode=Math.min(GS.mapNode+1,MAP_NODES.length-1);
+  if(GS.mapNode>=MAP_NODES.length){
+    showMsg('Realm Conquered!','You have defeated all enemies of the Shadow Realm!','Play Again',resetGame);
+    return;
+  }
+  showMap();
+}
+
+function handleMapNode(node) {
+  if(node.type==='combat'||node.type==='elite'||node.type==='boss'){
+    startCombat(node.enemy);
+    document.getElementById('enemy-panel').style.display='block';
+  } else if(node.type==='rest'){
+    GS.player.hp=Math.min(GS.player.maxHp,GS.player.hp+(node.heal||15));
+    GS.visited.push(GS.mapNode); updateUI();
+    showMsg('Rest Site','You recover '+(node.heal||15)+' HP. Feel the shadows ease...','Continue',advanceMap);
+  } else if(node.type==='shop'){
+    GS.player.hp=Math.min(GS.player.maxHp,GS.player.hp+(node.heal||5));
+    GS.visited.push(GS.mapNode); updateUI();
+    showMsg('Shadowy Shop','A merchant grants +5 HP and whispers of power.','Continue',advanceMap);
+  }
+}
+
+function showReward() {
+  const choices=shuffle(REWARD_POOL.slice()).slice(0,3);
+  const cont=document.getElementById('reward-cards'); cont.innerHTML='';
+  choices.forEach(card=>{
+    const tc=TYPE_COLORS[card.type]||TYPE_COLORS.Skill;
+    const btn=document.createElement('div'); btn.className='reward-card-btn';
+    btn.style.background=`linear-gradient(135deg,${tc.bg},#050505)`;
+    btn.style.color=tc.accent;
+    btn.innerHTML=`<div class="reward-card-name">${card.name}</div>
+      <div class="reward-card-cost">${card.cost} ⚡</div>
+      <div class="reward-card-desc">${card.effect}</div>`;
+    btn.addEventListener('click',()=>{
+      GS.fullDeck.push(Object.assign({},card));
+      document.getElementById('reward-overlay').classList.remove('show');
+      showMsg('Card Added',card.name+' added to your deck!','Continue',advanceMap);
+    });
+    cont.appendChild(btn);
+  });
+  document.getElementById('reward-overlay').classList.add('show');
+  document.getElementById('reward-skip').onclick=()=>{
+    document.getElementById('reward-overlay').classList.remove('show'); advanceMap();
+  };
+}
+
+// ── UI Update ─────────────────────────────────────────────────────
+function updateUI() {
+  const pp=(GS.player.hp/GS.player.maxHp)*100;
+  document.getElementById('player-hp-fill').style.width=pp+'%';
+  document.getElementById('player-hp-label').textContent=GS.player.hp+' / '+GS.player.maxHp;
+  document.getElementById('player-armor-val').textContent=GS.player.armor;
+  document.getElementById('draw-count').textContent=GS.drawPile.length;
+  document.getElementById('discard-count-val').textContent=GS.discardPile.length;
+  updateEnergyPips();
+  if(GS.enemy){
+    const ep=(GS.enemy.hp/GS.enemy.maxHp)*100;
+    document.getElementById('enemy-hp-fill').style.width=ep+'%';
+    document.getElementById('enemy-hp-label').textContent=GS.enemy.hp+' / '+GS.enemy.maxHp;
+    document.getElementById('enemy-name').textContent=GS.enemy.name;
+    document.getElementById('enemy-armor-val').textContent=GS.enemy.armor;
+    document.getElementById('enemy-str-val').textContent=GS.enemy.str;
+    const act=GS.enemy.actions[GS.enemyAI.actionIdx];
+    document.getElementById('intent-icon').textContent=act.icon;
+    document.getElementById('intent-label').textContent=act.label;
+  }
+}
+
+function updateEnergyPips() {
+  const row=document.getElementById('energy-row'); row.innerHTML='';
+  for(let i=0;i<GS.player.maxEnergy;i++){
+    const pip=document.createElement('div');
+    pip.className='energy-pip'+(i>=GS.player.energy?' empty':'');
+    row.appendChild(pip);
+  }
+  const lbl=document.createElement('span');
+  lbl.style.cssText='color:#ffd700;font-size:11px;margin-left:4px;';
+  lbl.textContent=GS.player.energy+'/'+GS.player.maxEnergy+' ⚡';
+  row.appendChild(lbl);
+}
+
+// ── Message Helper ────────────────────────────────────────────────
+let msgCB=null;
+function showMsg(title,body,btnText,cb){
+  document.getElementById('msg-title').textContent=title;
+  document.getElementById('msg-body').textContent=body;
+  document.getElementById('msg-btn').textContent=btnText||'Continue';
+  msgCB=cb||null;
+  document.getElementById('msg-overlay').classList.add('show');
+}
+document.getElementById('msg-btn').addEventListener('click',()=>{
+  document.getElementById('msg-overlay').classList.remove('show');
+  if(msgCB){const f=msgCB;msgCB=null;f();}
+});
+document.getElementById('map-btn').addEventListener('click',showMap);
+document.getElementById('map-close').addEventListener('click',()=>document.getElementById('map-overlay').classList.remove('show'));
+document.getElementById('end-turn-btn').addEventListener('click',endPlayerTurn);
+// ── Keyboard & Mouse Input ────────────────────────────────────────
+let selectedCardIdx=-1;
+document.addEventListener('keydown',e=>{
+  if(e.key>='1'&&e.key<='5'){
+    const i=parseInt(e.key)-1;
+    if(i<GS.hand.length) playHandCard(i);
+    return;
+  }
+  if(e.key==='ArrowLeft'||e.key==='ArrowRight'){
+    if(!GS.hand.length) return;
+    const dir=e.key==='ArrowLeft'?-1:1;
+    selectedCardIdx=(selectedCardIdx+dir+GS.hand.length)%GS.hand.length;
+    document.querySelectorAll('.hand-card-btn').forEach((b,i)=>b.classList.toggle('selected',i===selectedCardIdx));
+    hoverCard(selectedCardIdx,true); return;
+  }
+  if(e.key==='Enter'&&selectedCardIdx>=0){ playHandCard(selectedCardIdx); selectedCardIdx=-1; return; }
+  if(e.key==='e'||e.key==='E') endPlayerTurn();
+  if(e.key==='m'||e.key==='M') showMap();
+  if(e.key==='Escape') {
+    document.getElementById('map-overlay').classList.remove('show');
+    document.getElementById('msg-overlay').classList.remove('show');
+  }
+});
+
+// ── Depth Buffer ──────────────────────────────────────────────────
+let depthTex=null;
+function getDepthTex() {
+  const {device}=gpu;
+  if(!depthTex||depthTex.width!==canvasW||depthTex.height!==canvasH){
+    if(depthTex) try{depthTex.destroy();}catch(e){console.error('depthTex:',e);}
+    depthTex=device.createTexture({
+      size:[canvasW,canvasH],format:'depth24plus',
+      usage:GPUTextureUsage.RENDER_ATTACHMENT,
+    });
+  }
+  return depthTex;
+}
+
+// ── Deck Stack (visual) ───────────────────────────────────────────
+let deckStackObjs=[]; // up to 5 overlapping card-back quads
+function updateDeckStack(count){
+  // Clean up old
+  deckStackObjs.forEach(o=>{try{o.uniBuf.destroy();}catch(e){console.error('deckStack:',e);}});
+  deckStackObjs=[];
+  const n=Math.min(count,5);
+  for(let i=0;i<n;i++){
+    const {device}=gpu;
+    const uniBuf=device.createBuffer({size:CARD_UNI_SIZE,usage:GPUBufferUsage.UNIFORM|GPUBufferUsage.COPY_DST});
+    const bgl=deckPipeline.getBindGroupLayout(0);
+    const bindGroup=device.createBindGroup({layout:bgl,entries:[
+      {binding:0,resource:{buffer:uniBuf}},
+      {binding:1,resource:backTex.createView()},
+      {binding:2,resource:getSampler()},
+    ]});
+    deckStackObjs.push({uniBuf,bindGroup,
+      x:7.5,y:0.04+i*.045,z:4.5,rotY:(Math.random()-.5)*.18,rotZ:0,
+      scaleX:1,scaleY:1,scaleZ:1});
+  }
+}
+
+function renderDeckStack(pass) {
+  if(!deckStackObjs.length) return;
+  pass.setPipeline(deckPipeline);
+  pass.setVertexBuffer(0,quadVB);
+  deckStackObjs.forEach(ds=>{
+    const model=m4.mul(m4.mul(m4.trans(ds.x,ds.y,ds.z),m4.rotY(ds.rotY)),m4.scale(1,1,1));
+    const mvp=m4.mul(m4.mul(projMat,viewMat),model);
+    const data=new Float32Array(32); data.set(mvp,0);
+    data[16]=.4;data[17]=.05;data[18]=.6;data[19]=1;
+    data[20]=0;data[21]=0;data[22]=1;data[23]=0;
+    gpu.device.queue.writeBuffer(ds.uniBuf,0,data);
+    pass.setBindGroup(0,ds.bindGroup);
+    pass.draw(4);
+  });
+}
+
+// ── Render Loop ───────────────────────────────────────────────────
+let renderTime=0;
+function renderFrame(ts) {
+  requestAnimationFrame(renderFrame);
+  if(!gpu) return;
+  renderTime=ts*.001;
+  tickCardAnims();
+
+  const {device,context}=gpu;
+  const colorView=context.getCurrentTexture().createView();
+  const depthView=getDepthTex().createView();
+
+  const enc=device.createCommandEncoder();
+  const pass=enc.beginRenderPass({
+    colorAttachments:[{view:colorView,loadOp:'clear',storeOp:'store',clearValue:{r:.01,g:.0,b:.03,a:1}}],
+    depthStencilAttachment:{view:depthView,depthLoadOp:'clear',depthStoreOp:'store',depthClearValue:1},
+  });
+
+  // ── Table ──
+  const tMvp=m4.mul(m4.mul(projMat,viewMat),m4.id());
+  const tData=new Float32Array(24);
+  tData.set(tMvp,0); tData[16]=renderTime;
+  device.queue.writeBuffer(tableUniBuf,0,tData);
+  pass.setPipeline(tablePipeline);
+  pass.setBindGroup(0,tableBindGroup);
+  pass.draw(6);
+
+  // ── Deck stack ──
+  renderDeckStack(pass);
+
+  // ── Hand cards ──
+  if(cardObjs.length){
+    pass.setPipeline(cardPipeline);
+    pass.setVertexBuffer(0,quadVB);
+    cardObjs.forEach(co=>{
+      updateCardUniform(co,renderTime);
+      pass.setBindGroup(0,co.bindGroup);
+      pass.draw(4);
+    });
+  }
+
+  pass.end();
+  device.queue.submit([enc.finish()]);
+}
+// ── Klever Wallet ─────────────────────────────────────────────────
+let kleverConnected=false;
+document.getElementById('wallet-btn').addEventListener('click', async()=>{
+  if(kleverConnected) return;
+  const btn=document.getElementById('wallet-btn');
+  try {
+    if(window.kleverWeb||window.klever){
+      const kw=window.kleverWeb||window.klever;
+      await kw.initialize();
+      const addr=await kw.getWalletAddress();
+      if(addr){
+        kleverConnected=true;
+        const short=addr.slice(0,6)+'...'+addr.slice(-4);
+        btn.textContent='✦ '+short;
+        btn.style.background='linear-gradient(135deg,#1a4a1a,#2a7a2a)';
+        btn.style.color='#88ff88';
+        btn.style.borderColor='rgba(100,220,100,.5)';
+        showMsg('Klever Connected','Wallet: '+short+'\nReady to battle!','Continue');
+      }
+    } else {
+      btn.textContent='Install Klever Wallet';
+      btn.style.opacity='.6';
+      window.open('https://klever.io','_blank');
+    }
+  } catch(e) {
+    console.error('Klever connect:',e);
+    btn.textContent='🔗 Klever (Unavailable)';
+    btn.style.opacity='.6';
+  }
+});
+
+// ── WGSL fix: TABLE_FRAG needs proper struct ──────────────────────
+// Patch TABLE_FRAG to use correct WGSL syntax for in-params
+const TABLE_FRAG_FIXED = `
+struct TFIn { @builtin(position) pos: vec4f, @location(0) uv: vec2f, @location(1) world: vec2f }
+@fragment fn fs(in: TFIn) -> @location(0) vec4f {
+  var p  = in.world * 8.0;
+  var n1 = fract(sin(dot(floor(p),      vec2f(127.1,311.7)))*43758.5);
+  var n2 = fract(sin(dot(floor(p*3.0),  vec2f(269.5,183.3)))*43758.5);
+  var fx = step(0.92, fract(in.world.x * 25.0)) * 0.04;
+  var fy = step(0.92, fract(in.world.y * 25.0)) * 0.04;
+  var base = vec3f(0.038, 0.13, 0.052);
+  var col  = base + n1*0.012 + n2*0.006 - fx - fy;
+  var d = length(in.world * vec2f(0.07,0.1));
+  col += vec3f(0.008,0.03,0.01) * max(0.0, 1.0-d);
+  var ctr = in.uv - vec2f(0.5);
+  col *= max(0.0, 1.0 - dot(ctr,ctr)*1.2);
+  return vec4f(col, 1.0);
+}`;
+
+const CARD_FRAG_FIXED = `
+struct CUni {
+  mvp: mat4x4f, typeColor: vec4f,
+  time: f32, holo: f32, glow: f32, _pad: f32,
+}
+@group(0) @binding(0) var<uniform> u: CUni;
+@group(0) @binding(1) var faceTex:  texture_2d<f32>;
+@group(0) @binding(2) var faceSamp: sampler;
+struct CFIn { @builtin(position) pos: vec4f, @location(0) uv: vec2f, @location(1) wp: vec3f }
+@fragment fn fs(in: CFIn) -> @location(0) vec4f {
+  var c = textureSample(faceTex, faceSamp, in.uv);
+  if (u.holo > 0.01) {
+    var hu = in.uv + vec2f(u.time*0.22, u.time*0.15);
+    var r  = 0.5 + 0.5*sin(hu.x*7.0 + u.time*2.0);
+    var g2 = 0.5 + 0.5*sin(hu.y*5.0 + u.time*1.5 + 2.1);
+    var b  = 0.5 + 0.5*sin((hu.x+hu.y)*6.0 + u.time*3.0 + 4.2);
+    c = vec4f(c.rgb + vec3f(r,g2,b)*u.holo*0.18, c.a);
+  }
+  var ed = min(min(in.uv.x, 1.0-in.uv.x), min(in.uv.y, 1.0-in.uv.y));
+  var eg = smoothstep(0.0, 0.06, ed);
+  c = vec4f(mix(u.typeColor.rgb * u.glow * 2.5, c.rgb, eg), c.a);
+  var ndl = clamp(dot(normalize(in.wp), vec3f(0.2,1.0,0.4)), 0.0, 1.0);
+  c = vec4f(c.rgb * (0.7 + ndl*0.3), c.a);
+  return c;
+}`;
+
+const DECK_FRAG_FIXED = `
+struct CUni { mvp: mat4x4f, typeColor: vec4f, time: f32, holo: f32, glow: f32, _pad: f32 }
+@group(0) @binding(0) var<uniform> u: CUni;
+@group(0) @binding(1) var faceTex: texture_2d<f32>;
+@group(0) @binding(2) var faceSamp: sampler;
+struct CFIn { @builtin(position) pos: vec4f, @location(0) uv: vec2f, @location(1) wp: vec3f }
+@fragment fn fs(in: CFIn) -> @location(0) vec4f {
+  var c = textureSample(faceTex, faceSamp, in.uv);
+  var ed = min(min(in.uv.x, 1.0-in.uv.x), min(in.uv.y, 1.0-in.uv.y));
+  var eg = smoothstep(0.0, 0.06, ed);
+  c = vec4f(mix(vec3f(0.2,0.05,0.4)*1.5, c.rgb, eg), c.a);
+  return c;
+}`;
+
+const CARD_VERT_FIXED = `
+struct CUni { mvp: mat4x4f, typeColor: vec4f, time: f32, holo: f32, glow: f32, _pad: f32 }
+@group(0) @binding(0) var<uniform> u: CUni;
+struct VIn  { @location(0) pos: vec3f, @location(1) uv: vec2f }
+struct VOut { @builtin(position) pos: vec4f, @location(0) uv: vec2f, @location(1) wp: vec3f }
+@vertex fn vs(v: VIn) -> VOut {
+  var o: VOut;
+  o.pos = u.mvp * vec4f(v.pos, 1.0);
+  o.uv  = v.uv;
+  o.wp  = v.pos;
+  return o;
+}`;
+
+const TABLE_VERT_FIXED = `
+struct TUni { mvp: mat4x4f, time: f32, _p1: f32, _p2: f32, _p3: f32 }
+@group(0) @binding(0) var<uniform> u: TUni;
+struct TOut { @builtin(position) pos: vec4f, @location(0) uv: vec2f, @location(1) world: vec2f }
+@vertex fn vs(@builtin(vertex_index) vid: u32) -> TOut {
+  var p = array<vec3f,6>(
+    vec3f(-12.0,-0.01, 8.0), vec3f(12.0,-0.01, 8.0), vec3f(-12.0,-0.01,-8.0),
+    vec3f( 12.0,-0.01, 8.0), vec3f(12.0,-0.01,-8.0), vec3f(-12.0,-0.01,-8.0)
+  );
+  var o: TOut;
+  o.pos   = u.mvp * vec4f(p[vid],1.0);
+  o.uv    = vec2f((p[vid].x+12.0)/24.0, (p[vid].z+8.0)/16.0);
+  o.world = p[vid].xz;
+  return o;
+}`;
+// ── Rebuild pipelines with FIXED shaders ─────────────────────────
+function buildTablePipelineFixed() {
+  const {device,format}=gpu;
+  const bgl=device.createBindGroupLayout({entries:[
+    {binding:0,visibility:GPUShaderStage.VERTEX|GPUShaderStage.FRAGMENT,buffer:{type:'uniform'}}
+  ]});
+  tablePipeline=device.createRenderPipeline({
+    layout:device.createPipelineLayout({bindGroupLayouts:[bgl]}),
+    vertex:{module:device.createShaderModule({code:TABLE_VERT_FIXED}),entryPoint:'vs'},
+    fragment:{module:device.createShaderModule({code:TABLE_FRAG_FIXED}),entryPoint:'fs',targets:[{format}]},
+    primitive:{topology:'triangle-list'},
+    depthStencil:{format:'depth24plus',depthWriteEnabled:true,depthCompare:'less'},
+  });
+  tableUniBuf=device.createBuffer({size:128,usage:GPUBufferUsage.UNIFORM|GPUBufferUsage.COPY_DST});
+  tableBindGroup=device.createBindGroup({layout:bgl,entries:[{binding:0,resource:{buffer:tableUniBuf}}]});
+}
+
+function buildCardPipelineFixed() {
+  const {device,format}=gpu;
+  const bgl=device.createBindGroupLayout({entries:[
+    {binding:0,visibility:GPUShaderStage.VERTEX|GPUShaderStage.FRAGMENT,buffer:{type:'uniform'}},
+    {binding:1,visibility:GPUShaderStage.FRAGMENT,texture:{sampleType:'float'}},
+    {binding:2,visibility:GPUShaderStage.FRAGMENT,sampler:{type:'filtering'}},
+  ]});
+  const pl=device.createPipelineLayout({bindGroupLayouts:[bgl]});
+  const vbuf=[{arrayStride:20,attributes:[
+    {shaderLocation:0,offset:0,format:'float32x3'},
+    {shaderLocation:1,offset:12,format:'float32x2'},
+  ]}];
+  cardPipeline=device.createRenderPipeline({
+    layout:pl,
+    vertex:{module:device.createShaderModule({code:CARD_VERT_FIXED}),entryPoint:'vs',buffers:vbuf},
+    fragment:{module:device.createShaderModule({code:CARD_FRAG_FIXED}),entryPoint:'fs',
+      targets:[{format,blend:{
+        color:{srcFactor:'src-alpha',dstFactor:'one-minus-src-alpha',operation:'add'},
+        alpha:{srcFactor:'one',dstFactor:'zero',operation:'add'},
+      }}]},
+    primitive:{topology:'triangle-strip'},
+    depthStencil:{format:'depth24plus',depthWriteEnabled:true,depthCompare:'less-equal'},
+  });
+  deckPipeline=device.createRenderPipeline({
+    layout:pl,
+    vertex:{module:device.createShaderModule({code:CARD_VERT_FIXED}),entryPoint:'vs',buffers:vbuf},
+    fragment:{module:device.createShaderModule({code:DECK_FRAG_FIXED}),entryPoint:'fs',targets:[{format}]},
+    primitive:{topology:'triangle-strip'},
+    depthStencil:{format:'depth24plus',depthWriteEnabled:true,depthCompare:'less-equal'},
+  });
+}
+
+// ── Full Init ─────────────────────────────────────────────────────
+async function init() {
+  const canvas=document.getElementById('gpuCanvas');
+  if(!navigator.gpu){showGPUFallback();return;}
+  let adapter,device;
+  try {
+    adapter=await navigator.gpu.requestAdapter({powerPreference:'high-performance'});
+    if(!adapter){showGPUFallback();return;}
+    device=await adapter.requestDevice();
+  } catch(e){console.error('WebGPU request failed:',e);showGPUFallback();return;}
+
+  const context=canvas.getContext('webgpu');
+  if(!context){showGPUFallback();return;}
+  const format=navigator.gpu.getPreferredCanvasFormat();
+  context.configure({device,format,alphaMode:'opaque'});
+  gpu={device,context,format};
+
+  resizeCanvas();
+  window.addEventListener('resize',resizeCanvas);
+
+  // Quad vertex buffer (triangle-strip, 4 verts)
+  const verts=new Float32Array([
+    -CARD_W/2, 0, -CARD_H/2,  0,0,
+     CARD_W/2, 0, -CARD_H/2,  1,0,
+    -CARD_W/2, 0,  CARD_H/2,  0,1,
+     CARD_W/2, 0,  CARD_H/2,  1,1,
+  ]);
+  quadVB=device.createBuffer({size:verts.byteLength,usage:GPUBufferUsage.VERTEX|GPUBufferUsage.COPY_DST});
+  device.queue.writeBuffer(quadVB,0,verts);
+
+  // Pipelines
+  buildTablePipelineFixed();
+  buildCardPipelineFixed();
+
+  // Pre-gen type textures
+  for(const type of Object.keys(TYPE_COLORS)) texCache[type]=makeCardTexGPU(type);
+  backTex=makeBackTexGPU();
+
+  // Initial deck stack
+  updateDeckStack(20);
+
+  // Start render loop
+  requestAnimationFrame(renderFrame);
+
+  // Show intro
+  document.getElementById('intro-draw-btn').addEventListener('click',startGame);
+}
+
+function startGame() {
+  const intro=document.getElementById('intro-screen');
+  intro.classList.add('fade-out');
+  setTimeout(()=>{intro.classList.add('hidden');showMap();},900);
+}
+
+// ── Deck count button shows deck info ─────────────────────────────
+document.getElementById('deck-count-btn').addEventListener('click',()=>{
+  if(GS.drawPile.length)
+    showMsg('Draw Pile','Cards remaining: '+GS.drawPile.length+'\nDiscard: '+GS.discardPile.length,'OK');
+});
+
+// ── Reward skip wiring ────────────────────────────────────────────
+// (done inline in showReward)
+
+// ── Start ─────────────────────────────────────────────────────────
+init().catch(e=>{ console.error('Fatal init error:',e); showGPUFallback(); });
+
+// ────────────────────────────────────────────────────────────────
+// OASIS MUSIC ENGINE — Shadow Deck  (Jazz-Noir Piano, BPM=80)
+// ────────────────────────────────────────────────────────────────
+(function(){
+'use strict';
+const SK='oasis_shadowdeck_music';
+let _AC=null,_MG=null,_RV=null,_play=false,_tid=null,_beat=0,_nxt=0;
+const BT=60/80;
+const PIANO=[233.08,261.63,277.18,293.66,349.23,392];
+const BASS=[58.27,65.41,73.42,77.78,65.41,58.27,69.30,58.27];
+function _ctx(){
+  if(_AC) return _AC;
+  _AC=new(window.AudioContext||window.webkitAudioContext)();
+  _MG=_AC.createGain();_MG.gain.value=0.38;_MG.connect(_AC.destination);
+  _RV=_AC.createConvolver();
+  const l=_AC.sampleRate*1.8,b=_AC.createBuffer(2,l,_AC.sampleRate);
+  for(let c=0;c<2;c++){const d=b.getChannelData(c);for(let i=0;i<l;i++)d[i]=(Math.random()*2-1)*Math.pow(1-i/l,2.2);}
+  _RV.buffer=b;
+  const rg=_AC.createGain();rg.gain.value=0.35;_RV.connect(rg).connect(_MG);
+  return _AC;
+}
+function _note(f,t,d,v,tp){
+  const ac=_ctx(),o=ac.createOscillator(),g=ac.createGain();
+  o.type=tp||'sine';o.frequency.value=f;
+  g.gain.setValueAtTime(0,t);g.gain.linearRampToValueAtTime(v,t+0.015);
+  g.gain.exponentialRampToValueAtTime(0.001,t+d);
+  o.connect(g);g.connect(_MG);if(tp==='sine'||!tp)g.connect(_RV);
+  o.start(t);o.stop(t+d+0.05);
+}
+function _noise(t,d,v){
+  const ac=_ctx(),sr=ac.sampleRate,len=Math.floor(sr*d);
+  const buf=ac.createBuffer(1,len,sr),data=buf.getChannelData(0);
+  for(let i=0;i<len;i++) data[i]=(Math.random()*2-1);
+  const src=ac.createBufferSource(),g=ac.createGain(),f=ac.createBiquadFilter();
+  f.type='bandpass';f.frequency.value=4000;f.Q.value=0.8;
+  src.buffer=buf;g.gain.setValueAtTime(v,t);g.gain.exponentialRampToValueAtTime(0.001,t+d);
+  src.connect(f).connect(g).connect(_MG);src.start(t);
+}
+function _seq(){
+  if(!_play) return;
+  const ac=_ctx();if(ac.state==='suspended')ac.resume();
+  const bi=_beat%8,t=_nxt;
+  if(bi%2===0||bi===3||bi===7) _note(PIANO[bi%PIANO.length],t,BT*0.4,0.1,'sine');
+  _note(BASS[bi],t,BT*0.9,0.14,'triangle');
+  if(bi%2===0) _noise(t,0.08,0.06);
+  if(bi%2===1) _noise(t+BT*0.5,0.05,0.04);
+  if(bi===0||bi===4)[PIANO[0],PIANO[2],PIANO[4]].forEach((f,i)=>_note(f,t+i*0.02,BT*1.5,0.06,'sine'));
+  _beat++;_nxt+=BT;
+  _tid=setTimeout(_seq,Math.max(0,(_nxt-ac.currentTime)*1000-40));
+}
+function _start(){const ac=_ctx();if(ac.state==='suspended')ac.resume();_nxt=ac.currentTime+0.08;_beat=0;_play=true;_seq();}
+function _stop(){_play=false;if(_tid)clearTimeout(_tid);}
+(function _mkBtn(){
+  if(!document.body){setTimeout(_mkBtn,50);return;}
+  const b=document.createElement('button');
+  b.innerHTML='♪';b.title='Toggle Music';
+  b.style.cssText='position:fixed;top:12px;right:60px;z-index:9999;width:36px;height:36px;background:rgba(5,5,15,0.85);color:#887;border:1px solid #443;border-radius:50%;font-size:16px;cursor:pointer;transition:all .25s;line-height:1;padding:0;font-family:sans-serif;';
+  b.onclick=()=>{
+    const ac=_ctx();if(ac.state==='suspended')ac.resume();
+    _play=!_play;
+    if(_play){_start();b.style.color='#adf';b.style.borderColor='#68b';b.style.boxShadow='0 0 10px #469';}
+    else{_stop();b.style.color='#887';b.style.borderColor='#443';b.style.boxShadow='';}
+    localStorage.setItem(SK,_play);
+  };
+  document.body.appendChild(b);
+  if(localStorage.getItem(SK)==='true'){
+    const go=e=>{if(!e||e.isTrusted){if(!_play)b.click();document.removeEventListener('click',go,true);document.removeEventListener('keydown',go,true);}};
+    document.addEventListener('click',go,true);document.addEventListener('keydown',go,true);
+  }
+})();
+})();
+/* -------- OASIS SAVE + LEADERBOARD -------- */
+(function(){
+  const SAVE_KEY='oasis_shadowdeck_save';
+  const LB_KEY='oasis_shadowdeck_leaderboard';
+  const PROF_KEY='oasis_profile';
+  window._sdMaxHit=0;
+  window._sdCurStreak=0;
+  function loadSave(){try{return JSON.parse(localStorage.getItem(SAVE_KEY))||{};}catch(e){return{};}}
+  function writeSave(d){try{localStorage.setItem(SAVE_KEY,JSON.stringify(d));}catch(e){}}
+  function loadLB(){try{return JSON.parse(localStorage.getItem(LB_KEY))||[];}catch(e){return[];}}
+  function writeLB(lb){try{localStorage.setItem(LB_KEY,JSON.stringify(lb));}catch(e){}}
+  function syncProfile(score,won){
+    try{
+      let p=JSON.parse(localStorage.getItem(PROF_KEY))||{balance:0,gamesPlayed:0,wins:0,rank:'Novice'};
+      p.gamesPlayed=(p.gamesPlayed||0)+1;
+      if(won) p.wins=(p.wins||0)+1;
+      p.balance=Math.round(((p.balance||0)+score/10)*100)/100;
+      localStorage.setItem(PROF_KEY,JSON.stringify(p));
+    }catch(e){}
+  }
+  window.sdHandleGameEnd=function(won){
+    const maxHit=window._sdMaxHit||0;
+    if(won) window._sdCurStreak=(window._sdCurStreak||0)+1;
+    else window._sdCurStreak=0;
+    const streak=window._sdCurStreak;
+    const score=streak*500+(won?200:0)+maxHit*10;
+    const save=loadSave();
+    save.bestStreak=Math.max(save.bestStreak||0,streak);
+    save.totalWins=(save.totalWins||0)+(won?1:0);
+    save.totalLosses=(save.totalLosses||0)+(won?0:1);
+    save.maxHit=Math.max(save.maxHit||0,maxHit);
+    writeSave(save);
+    const lb=loadLB();
+    const entry={score,streak,maxHit,date:new Date().toLocaleDateString(),won};
+    lb.push(entry);lb.sort((a,b)=>b.score-a.score);
+    const trimmed=lb.slice(0,10);
+    const isNew=trimmed.length&&trimmed[0].score===entry.score&&trimmed[0].date===entry.date;
+    writeLB(trimmed);
+    syncProfile(score,won);
+    if(isNew){
+      const banner=document.createElement('div');
+      banner.style.cssText='color:#ffd700;font-family:"Cinzel Decorative",serif;font-size:.95rem;letter-spacing:.15em;margin-top:10px;text-align:center';
+      banner.textContent='✦ NEW HIGH SCORE! ✦';
+      const target=document.getElementById(won?'victory-stats':'defeat-stats');
+      if(target) target.parentNode.insertBefore(banner,target.nextSibling);
+      setTimeout(()=>banner.remove(),6000);
+    }
+    window._sdMaxHit=0;
+  };
+  function renderLB(){
+    const lb=loadLB(),save=loadSave();
+    document.getElementById('sd-lb-str').textContent=save.bestStreak||0;
+    document.getElementById('sd-lb-wl').textContent=(save.totalWins||0)+'W / '+(save.totalLosses||0)+'L';
+    document.getElementById('sd-lb-mh').textContent=save.maxHit||0;
+    const cont=document.getElementById('sd-lb-entries');
+    if(!lb.length){cont.innerHTML='<div style="text-align:center;color:rgba(255,215,0,.3);padding:20px;font-size:.85rem;letter-spacing:.15em">NO SCORES YET — PLAY TO SET A RECORD</div>';return;}
+    cont.innerHTML=lb.map((e,i)=>`<div class="sd-lb-row${i===0?' gold':''}">`+
+      `<span>#${i+1}</span><span>${e.score.toLocaleString()}</span>`+
+      `<span style="color:rgba(255,215,0,.45);font-size:.75rem">Streak:${e.streak||0} · ${e.date}${e.won?' ✦':''}</span></div>`).join('');
+  }
+  document.addEventListener('DOMContentLoaded',()=>{
+    const btn=document.getElementById('sd-lb-btn');
+    if(btn) btn.addEventListener('click',()=>{renderLB();document.getElementById('sd-lb-overlay').classList.add('show');});
+    const close=document.getElementById('sd-lb-close');
+    if(close) close.addEventListener('click',()=>document.getElementById('sd-lb-overlay').classList.remove('show'));
+    const clr=document.getElementById('sd-lb-clr');
+    if(clr) clr.addEventListener('click',()=>{if(confirm('Clear all Shadow Deck scores?')){localStorage.removeItem(LB_KEY);renderLB();}});
+  });
+})();
+</script>
+
+<!-- ── SHADOW DECK · HELP BUTTON & CONTROLS MODAL ── -->
+<button id="sd-help-btn" title="Controls Help" onclick="document.getElementById('sd-help-modal').style.display='flex'">?</button>
+<div id="sd-help-modal">
+  <div id="sd-help-panel">
+    <button id="sd-help-close">×</button>
+    <h2>SHADOW DECK · CONTROLS</h2>
+    <div class="sd-help-cols">
+      <div class="sd-help-col">
+        <h3>⌨️ KEYBOARD / MOUSE</h3>
+        <div class="sd-help-row"><span class="sd-hkey">Click Cards</span><span class="sd-hdesc">Select / Play card</span></div>
+        <div class="sd-help-row"><span class="sd-hkey">Click End Turn</span><span class="sd-hdesc">End your turn</span></div>
+        <div class="sd-help-row"><span class="sd-hkey">Click Map Nodes</span><span class="sd-hdesc">Navigate map</span></div>
+        <div class="sd-help-row"><span class="sd-hkey">ESC</span><span class="sd-hdesc">Pause</span></div>
+      </div>
+      <div class="sd-help-col">
+        <h3>📱 MOBILE / TOUCH</h3>
+        <div class="sd-help-row"><span class="sd-hkey">Tap Cards</span><span class="sd-hdesc">Select / Play card</span></div>
+        <div class="sd-help-row"><span class="sd-hkey">Tap Map Nodes</span><span class="sd-hdesc">Navigate map</span></div>
+      </div>
+    </div>
+  </div>
+</div>
+<style>
+#sd-help-btn{position:fixed;top:12px;right:12px;z-index:1000;width:36px;height:36px;background:rgba(5,5,15,0.85);color:#ccc;border:1.5px solid rgba(150,170,220,0.35);border-radius:50%;font-size:17px;font-weight:700;cursor:pointer;font-family:sans-serif;line-height:1;padding:0;transition:all .2s;}
+#sd-help-btn:hover{border-color:#8af;color:#adf;box-shadow:0 0 10px rgba(136,170,255,0.45);}
+#sd-help-modal{display:none;position:fixed;inset:0;z-index:10000;background:rgba(0,0,8,0.65);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);align-items:center;justify-content:center;}
+#sd-help-panel{background:rgba(5,5,18,0.93);border:1px solid rgba(136,170,255,0.3);border-radius:12px;padding:28px 32px;max-width:620px;width:92%;position:relative;color:#ccc;font-family:sans-serif;max-height:88vh;overflow-y:auto;box-shadow:0 0 40px rgba(100,140,255,0.12);}
+#sd-help-panel h2{text-align:center;color:#adf;letter-spacing:.15em;margin:0 0 20px;font-size:1.1rem;font-family:sans-serif;}
+#sd-help-close{position:absolute;top:10px;right:14px;background:none;border:none;color:#666;font-size:22px;cursor:pointer;line-height:1;padding:2px 6px;font-family:sans-serif;}
+#sd-help-close:hover{color:#fff;}
+.sd-help-cols{display:grid;grid-template-columns:1fr 1fr;gap:20px;}
+@media(max-width:500px){.sd-help-cols{grid-template-columns:1fr;}}
+.sd-help-col h3{color:#8af;font-size:.78rem;letter-spacing:.12em;margin:0 0 10px;border-bottom:1px solid rgba(136,170,255,0.2);padding-bottom:6px;font-family:sans-serif;}
+.sd-help-row{display:flex;justify-content:space-between;padding:5px 0;border-bottom:1px solid rgba(255,255,255,0.05);font-size:.8rem;gap:8px;}
+.sd-hkey{color:#adf;font-weight:600;white-space:nowrap;font-family:sans-serif;}
+.sd-hdesc{color:#999;text-align:right;font-family:sans-serif;}
+</style>
+<script>
+(function(){
+  document.getElementById('sd-help-modal').addEventListener('click',function(e){if(e.target===this)this.style.display='none';});
+  document.getElementById('sd-help-close').addEventListener('click',function(){document.getElementById('sd-help-modal').style.display='none';});
+  document.addEventListener('keydown',function(e){if(e.key==='Escape'){var m=document.getElementById('sd-help-modal');if(m&&m.style.display==='flex')m.style.display='none';}});
+})();
+</script>
+</body>
+</html>

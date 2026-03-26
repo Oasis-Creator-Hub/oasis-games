@@ -1,0 +1,630 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>The Oasis — Metaverse Hub</title>
+  <link href="https://fonts.googleapis.com/css2?family=Cinzel+Decorative:wght@400;700;900&family=Orbitron:wght@400;500;700&family=Rajdhani:wght@300;400;500;600&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --gold: #FFD700;
+      --gold-dim: #B8860B;
+      --neon-purple: #8B5CF6;
+      --neon-blue: #3B82F6;
+      --neon-red: #EF4444;
+      --neon-green: #22C55E;
+      --neon-teal: #14B8A6;
+      --bg-dark: #050810;
+      --bg-card: rgba(10, 15, 30, 0.7);
+      --glass-border: rgba(255, 255, 255, 0.08);
+      --text-primary: #E8EAFF;
+      --text-muted: #8892B0;
+    }
+
+    html, body {
+      width: 100%; min-height: 100vh;
+      background: var(--bg-dark);
+      color: var(--text-primary);
+      font-family: 'Rajdhani', sans-serif;
+      overflow-x: hidden;
+    }
+
+    /* Canvas & nebula background */
+    #particles { position: fixed; inset: 0; z-index: 0; pointer-events: none; }
+    .nebula {
+      position: fixed; inset: 0; z-index: 0; pointer-events: none;
+      background:
+        radial-gradient(ellipse 80% 50% at 20% 30%, rgba(139,92,246,0.12) 0%, transparent 60%),
+        radial-gradient(ellipse 60% 40% at 80% 70%, rgba(59,130,246,0.10) 0%, transparent 55%),
+        radial-gradient(ellipse 50% 60% at 50% 0%, rgba(255,215,0,0.06) 0%, transparent 50%);
+      animation: nebulaShift 20s ease-in-out infinite alternate;
+    }
+    @keyframes nebulaShift {
+      0%   { opacity: 0.8; transform: scale(1) rotate(0deg); }
+      100% { opacity: 1; transform: scale(1.05) rotate(1deg); }
+    }
+
+    /* Layout wrapper */
+    .page-wrapper { position: relative; z-index: 1; min-height: 100vh; display: flex; flex-direction: column; }
+
+    /* ─── HEADER ─── */
+    header {
+      display: flex; align-items: flex-start; justify-content: space-between;
+      padding: 28px 40px 0;
+      position: relative;
+    }
+    .logo-section { text-align: center; flex: 1; padding-top: 10px; }
+
+    .logo {
+      font-family: 'Cinzel Decorative', serif;
+      font-size: clamp(2.4rem, 6vw, 5rem);
+      font-weight: 900; letter-spacing: 0.12em;
+      color: var(--gold);
+      text-shadow:
+        0 0 20px rgba(255,215,0,0.9),
+        0 0 40px rgba(255,215,0,0.6),
+        0 0 80px rgba(255,215,0,0.3),
+        0 0 120px rgba(255,180,0,0.2);
+      animation: logoGlow 3s ease-in-out infinite alternate;
+    }
+    @keyframes logoGlow {
+      0%  { text-shadow: 0 0 20px rgba(255,215,0,0.9), 0 0 40px rgba(255,215,0,0.6), 0 0 80px rgba(255,215,0,0.3); }
+      100%{ text-shadow: 0 0 30px rgba(255,215,0,1),   0 0 60px rgba(255,215,0,0.8), 0 0 120px rgba(255,215,0,0.5); }
+    }
+
+    .tagline {
+      font-family: 'Orbitron', monospace;
+      font-size: clamp(0.65rem, 1.6vw, 1rem);
+      letter-spacing: 0.25em; text-transform: uppercase;
+      color: var(--text-muted); margin-top: 10px;
+      background: linear-gradient(90deg, var(--neon-purple), var(--gold), var(--neon-blue));
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    /* ─── HEADER CONTROLS ─── */
+    .header-controls {
+      display: flex; flex-direction: column; align-items: flex-end; gap: 12px;
+      min-width: 200px; padding-top: 6px;
+    }
+
+    /* Wallet button */
+    .wallet-btn {
+      font-family: 'Orbitron', monospace; font-size: 0.65rem;
+      font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase;
+      padding: 10px 18px; border-radius: 8px; cursor: pointer;
+      border: 1px solid rgba(255,215,0,0.5);
+      background: linear-gradient(135deg, rgba(255,215,0,0.1), rgba(255,180,0,0.05));
+      color: var(--gold); transition: all 0.3s ease;
+      backdrop-filter: blur(10px);
+    }
+    .wallet-btn:hover {
+      background: linear-gradient(135deg, rgba(255,215,0,0.25), rgba(255,180,0,0.15));
+      border-color: var(--gold);
+      box-shadow: 0 0 20px rgba(255,215,0,0.4);
+    }
+    .wallet-btn.connected { border-color: var(--neon-green); color: var(--neon-green);
+      background: rgba(34,197,94,0.1); }
+
+    /* ─── PROFILE WIDGET ─── */
+    .profile-widget { position: relative; }
+    .profile-badge {
+      display: flex; align-items: center; gap: 10px;
+      padding: 10px 16px; border-radius: 10px; cursor: pointer;
+      background: var(--bg-card); border: 1px solid var(--glass-border);
+      backdrop-filter: blur(20px); transition: all 0.3s ease;
+    }
+    .profile-badge:hover { border-color: rgba(255,215,0,0.4); box-shadow: 0 0 20px rgba(255,215,0,0.15); }
+    .profile-avatar {
+      width: 36px; height: 36px; border-radius: 50%;
+      background: linear-gradient(135deg, var(--neon-purple), var(--gold));
+      display: flex; align-items: center; justify-content: center;
+      font-size: 1rem; font-weight: 700;
+    }
+    .profile-info { line-height: 1.2; }
+    .profile-rank { font-family: 'Orbitron', monospace; font-size: 0.6rem; color: var(--gold); letter-spacing: 0.1em; }
+    .profile-bal  { font-size: 0.85rem; color: var(--text-primary); font-weight: 600; }
+
+    /* Profile expanded card */
+    .profile-card {
+      position: absolute; top: calc(100% + 10px); right: 0;
+      width: 260px; background: rgba(5,8,16,0.95);
+      border: 1px solid rgba(255,215,0,0.25);
+      border-radius: 14px; padding: 20px;
+      backdrop-filter: blur(30px);
+      box-shadow: 0 20px 60px rgba(0,0,0,0.8), 0 0 30px rgba(255,215,0,0.08);
+      display: none; z-index: 100;
+      animation: slideDown 0.2s ease;
+    }
+    .profile-card.open { display: block; }
+    @keyframes slideDown { from { opacity:0; transform:translateY(-10px); } to { opacity:1; transform:translateY(0); } }
+
+    .profile-card h3 {
+      font-family: 'Cinzel Decorative', serif; font-size: 0.75rem;
+      color: var(--gold); letter-spacing: 0.1em; margin-bottom: 16px; text-align: center;
+    }
+    .stat-row {
+      display: flex; justify-content: space-between; align-items: center;
+      padding: 8px 0; border-bottom: 1px solid rgba(255,255,255,0.05);
+      font-size: 0.85rem;
+    }
+    .stat-row:last-child { border-bottom: none; }
+    .stat-label { color: var(--text-muted); font-size: 0.8rem; }
+    .stat-value { color: var(--text-primary); font-weight: 600; font-family: 'Orbitron', monospace; font-size: 0.8rem; }
+    .stat-value.gold { color: var(--gold); }
+
+    /* Divider */
+    .section-divider {
+      text-align: center; padding: 50px 40px 20px;
+      font-family: 'Orbitron', monospace; font-size: 0.7rem;
+      letter-spacing: 0.3em; color: var(--text-muted); text-transform: uppercase;
+    }
+    .section-divider::before, .section-divider::after {
+      content: ''; display: inline-block; width: 60px; height: 1px;
+      background: linear-gradient(90deg, transparent, rgba(255,215,0,0.4));
+      vertical-align: middle; margin: 0 16px;
+    }
+    .section-divider::after { background: linear-gradient(90deg, rgba(255,215,0,0.4), transparent); }
+
+    /* ─── GAMES GRID ─── */
+    .games-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 24px;
+      padding: 10px 40px 60px;
+      max-width: 1100px;
+      margin: 0 auto;
+      width: 100%;
+    }
+
+    /* ─── GAME CARD ─── */
+    .game-card {
+      position: relative; overflow: hidden;
+      background: var(--bg-card);
+      border: 1px solid var(--glass-border);
+      border-radius: 18px;
+      padding: 28px 28px 24px;
+      backdrop-filter: blur(20px);
+      cursor: pointer;
+      transition: transform 0.4s cubic-bezier(0.175,0.885,0.32,1.275),
+                  box-shadow 0.4s ease, border-color 0.4s ease;
+      opacity: 0; transform: translateY(30px);
+      animation: cardEntrance 0.6s ease forwards;
+    }
+    @keyframes cardEntrance {
+      to { opacity: 1; transform: translateY(0); }
+    }
+    .game-card:nth-child(1) { animation-delay: 0.1s; }
+    .game-card:nth-child(2) { animation-delay: 0.2s; }
+    .game-card:nth-child(3) { animation-delay: 0.3s; }
+    .game-card:nth-child(4) { animation-delay: 0.4s; }
+    .game-card:nth-child(5) { animation-delay: 0.5s; }
+    .game-card:nth-child(6) { animation-delay: 0.6s; }
+
+    /* Card shimmer overlay */
+    .game-card::before {
+      content: ''; position: absolute; inset: 0;
+      background: linear-gradient(135deg, rgba(255,255,255,0.03) 0%, transparent 50%, rgba(255,255,255,0.01) 100%);
+      pointer-events: none;
+    }
+    .game-card::after {
+      content: ''; position: absolute; inset: -2px;
+      border-radius: 19px; opacity: 0;
+      transition: opacity 0.4s ease;
+      pointer-events: none;
+    }
+
+    /* Card hover - per theme color */
+    .game-card[data-color="purple"]:hover  { border-color: var(--neon-purple); transform: translateY(-6px); box-shadow: 0 20px 50px rgba(0,0,0,0.6), 0 0 40px rgba(139,92,246,0.35); }
+    .game-card[data-color="gold"]:hover    { border-color: var(--gold);        transform: translateY(-6px); box-shadow: 0 20px 50px rgba(0,0,0,0.6), 0 0 40px rgba(255,215,0,0.35); }
+    .game-card[data-color="teal"]:hover   { border-color: var(--neon-teal);   transform: translateY(-6px); box-shadow: 0 20px 50px rgba(0,0,0,0.6), 0 0 40px rgba(20,184,166,0.35); }
+    .game-card[data-color="blue"]:hover   { border-color: var(--neon-blue);   transform: translateY(-6px); box-shadow: 0 20px 50px rgba(0,0,0,0.6), 0 0 40px rgba(59,130,246,0.35); }
+    .game-card[data-color="green"]:hover  { border-color: var(--neon-green);  transform: translateY(-6px); box-shadow: 0 20px 50px rgba(0,0,0,0.6), 0 0 40px rgba(34,197,94,0.35); }
+    .game-card[data-color="red"]:hover    { border-color: var(--neon-red);    transform: translateY(-6px); box-shadow: 0 20px 50px rgba(0,0,0,0.6), 0 0 40px rgba(239,68,68,0.35); }
+
+    /* Card content */
+    .card-icon { font-size: 2.4rem; margin-bottom: 14px; display: block; filter: drop-shadow(0 0 10px currentColor); }
+    .card-name {
+      font-family: 'Cinzel Decorative', serif; font-size: 1.1rem;
+      font-weight: 700; letter-spacing: 0.05em; margin-bottom: 6px;
+    }
+    .card-tagline { font-size: 0.85rem; color: var(--text-muted); margin-bottom: 18px; line-height: 1.4; }
+    .card-stat {
+      display: inline-flex; align-items: center; gap: 6px;
+      font-family: 'Orbitron', monospace; font-size: 0.65rem;
+      color: var(--text-muted); letter-spacing: 0.08em;
+      background: rgba(255,255,255,0.04); border-radius: 6px;
+      padding: 5px 10px; margin-bottom: 20px;
+    }
+    .card-stat-dot { width: 6px; height: 6px; border-radius: 50%; background: currentColor; animation: pulse 2s infinite; }
+    @keyframes pulse { 0%,100%{ opacity:1; } 50%{ opacity:0.4; } }
+
+    /* Color theming for card elements */
+    .game-card[data-color="purple"] .card-name { color: var(--neon-purple); }
+    .game-card[data-color="gold"]   .card-name { color: var(--gold); }
+    .game-card[data-color="teal"]  .card-name { color: var(--neon-teal); }
+    .game-card[data-color="blue"]  .card-name { color: var(--neon-blue); }
+    .game-card[data-color="green"] .card-name { color: var(--neon-green); }
+    .game-card[data-color="red"]   .card-name { color: var(--neon-red); }
+    .game-card[data-color="purple"] .card-stat-dot { color: var(--neon-purple); }
+    .game-card[data-color="gold"]   .card-stat-dot { color: var(--gold); }
+    .game-card[data-color="teal"]  .card-stat-dot { color: var(--neon-teal); }
+    .game-card[data-color="blue"]  .card-stat-dot { color: var(--neon-blue); }
+    .game-card[data-color="green"] .card-stat-dot { color: var(--neon-green); }
+    .game-card[data-color="red"]   .card-stat-dot { color: var(--neon-red); }
+
+    /* PLAY NOW button */
+    .play-btn {
+      display: inline-flex; align-items: center; gap: 8px;
+      font-family: 'Orbitron', monospace; font-size: 0.7rem;
+      font-weight: 700; letter-spacing: 0.15em; text-transform: uppercase;
+      text-decoration: none; padding: 12px 24px; border-radius: 8px;
+      transition: all 0.3s ease; border: 1px solid;
+    }
+    .play-btn .arrow { transition: transform 0.3s ease; }
+    .play-btn:hover .arrow { transform: translateX(4px); }
+
+    .game-card[data-color="purple"] .play-btn { color: var(--neon-purple); border-color: rgba(139,92,246,0.5); background: rgba(139,92,246,0.1); }
+    .game-card[data-color="purple"] .play-btn:hover { background: rgba(139,92,246,0.25); box-shadow: 0 0 20px rgba(139,92,246,0.3); }
+    .game-card[data-color="gold"]   .play-btn { color: var(--gold); border-color: rgba(255,215,0,0.5); background: rgba(255,215,0,0.08); }
+    .game-card[data-color="gold"]   .play-btn:hover { background: rgba(255,215,0,0.2); box-shadow: 0 0 20px rgba(255,215,0,0.3); }
+    .game-card[data-color="teal"]  .play-btn { color: var(--neon-teal); border-color: rgba(20,184,166,0.5); background: rgba(20,184,166,0.08); }
+    .game-card[data-color="teal"]  .play-btn:hover { background: rgba(20,184,166,0.2); box-shadow: 0 0 20px rgba(20,184,166,0.3); }
+    .game-card[data-color="blue"]  .play-btn { color: var(--neon-blue); border-color: rgba(59,130,246,0.5); background: rgba(59,130,246,0.08); }
+    .game-card[data-color="blue"]  .play-btn:hover { background: rgba(59,130,246,0.2); box-shadow: 0 0 20px rgba(59,130,246,0.3); }
+    .game-card[data-color="green"] .play-btn { color: var(--neon-green); border-color: rgba(34,197,94,0.5); background: rgba(34,197,94,0.08); }
+    .game-card[data-color="green"] .play-btn:hover { background: rgba(34,197,94,0.2); box-shadow: 0 0 20px rgba(34,197,94,0.3); }
+    .game-card[data-color="red"]   .play-btn { color: var(--neon-red); border-color: rgba(239,68,68,0.5); background: rgba(239,68,68,0.08); }
+    .game-card[data-color="red"]   .play-btn:hover { background: rgba(239,68,68,0.2); box-shadow: 0 0 20px rgba(239,68,68,0.3); }
+
+    /* ─── FOOTER ─── */
+    footer {
+      text-align: center; padding: 30px 40px;
+      font-family: 'Orbitron', monospace; font-size: 0.65rem;
+      letter-spacing: 0.2em; color: var(--text-muted);
+      border-top: 1px solid rgba(255,255,255,0.05);
+      margin-top: auto;
+    }
+
+    /* ─── RESPONSIVE ─── */
+    @media (max-width: 700px) {
+      header { flex-direction: column; align-items: center; padding: 20px 20px 0; gap: 16px; }
+      .header-controls { align-items: center; width: 100%; }
+      .games-grid { grid-template-columns: 1fr; padding: 10px 20px 40px; }
+      .section-divider { padding: 30px 20px 16px; }
+    }
+  </style>
+</head>
+<body>
+<canvas id="particles"></canvas>
+<div class="nebula"></div>
+
+<div class="page-wrapper">
+  <!-- ─── HEADER ─── -->
+  <header>
+    <div style="min-width:200px"></div>
+
+    <div class="logo-section">
+      <h1 class="logo">THE OASIS</h1>
+      <p class="tagline">Enter the Metaverse. Play. Earn. Conquer.</p>
+    </div>
+
+    <div class="header-controls">
+      <button class="wallet-btn" id="walletBtn" onclick="connectWallet()">⬡ Connect Wallet</button>
+      <div class="profile-widget">
+        <div class="profile-badge" onclick="toggleProfile()" id="profileBadge">
+          <div class="profile-avatar" id="profileAvatar">⚔</div>
+          <div class="profile-info">
+            <div class="profile-rank" id="profileRank">OASIS EXPLORER</div>
+            <div class="profile-bal" id="profileBal">0 $OASIS</div>
+          </div>
+        </div>
+        <div class="profile-card" id="profileCard">
+          <h3>⬡ OASIS PROFILE</h3>
+          <div class="stat-row"><span class="stat-label">Rank</span><span class="stat-value gold" id="pcRank">EXPLORER</span></div>
+          <div class="stat-row"><span class="stat-label">$OASIS Balance</span><span class="stat-value gold" id="pcBal">0</span></div>
+          <div class="stat-row"><span class="stat-label">Games Played</span><span class="stat-value" id="pcPlayed">0</span></div>
+          <div class="stat-row"><span class="stat-label">Total Wins</span><span class="stat-value" id="pcWins">0</span></div>
+          <div class="stat-row"><span class="stat-label">Win Rate</span><span class="stat-value" id="pcWinRate">—</span></div>
+          <div class="stat-row"><span class="stat-label">Wallet</span><span class="stat-value" id="pcWallet" style="font-size:0.65rem;color:var(--text-muted)">Not connected</span></div>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <div class="section-divider">Select Your Arena</div>
+
+  <!-- ─── GAME CARDS ─── -->
+  <main>
+    <div class="games-grid">
+
+      <!-- Shadow Realm -->
+      <div class="game-card" data-color="purple" onclick="launchGame('https://shadowrealm-v4.surge.sh')">
+        <span class="card-icon">🌑</span>
+        <div class="card-name">Shadow Realm</div>
+        <div class="card-tagline">Conquer the darkness. Rule the void.</div>
+        <div class="card-stat">
+          <span class="card-stat-dot"></span>
+          <span id="stat-shadow">High Score: 0</span>
+        </div><br>
+        <a class="play-btn" href="https://shadowrealm-v4.surge.sh" target="_blank" onclick="event.stopPropagation()">
+          PLAY NOW <span class="arrow">→</span>
+        </a>
+      </div>
+
+      <!-- Lightbringer -->
+      <div class="game-card" data-color="gold" onclick="launchGame('https://lightbringer-v5.surge.sh')">
+        <span class="card-icon">☀️</span>
+        <div class="card-name">Lightbringer</div>
+        <div class="card-tagline">Illuminate the path. Become legend.</div>
+        <div class="card-stat">
+          <span class="card-stat-dot"></span>
+          <span id="stat-light">Best Streak: 0</span>
+        </div><br>
+        <a class="play-btn" href="https://lightbringer-v5.surge.sh" target="_blank" onclick="event.stopPropagation()">
+          PLAY NOW <span class="arrow">→</span>
+        </a>
+      </div>
+
+      <!-- Shadow Deck -->
+      <div class="game-card" data-color="teal" onclick="launchGame('https://shadow-deck-v4.surge.sh')">
+        <span class="card-icon">🃏</span>
+        <div class="card-name">Shadow Deck</div>
+        <div class="card-tagline">Master the cards. Command fate.</div>
+        <div class="card-stat">
+          <span class="card-stat-dot"></span>
+          <span id="stat-deck">Chips: 1000</span>
+        </div><br>
+        <a class="play-btn" href="https://shadow-deck-v4.surge.sh" target="_blank" onclick="event.stopPropagation()">
+          PLAY NOW <span class="arrow">→</span>
+        </a>
+      </div>
+
+      <!-- The Vault Casino -->
+      <div class="game-card" data-color="blue" onclick="launchGame('https://oasis-vault-v4.surge.sh')">
+        <span class="card-icon">💎</span>
+        <div class="card-name">The Vault Casino</div>
+        <div class="card-tagline">High stakes. Higher rewards.</div>
+        <div class="card-stat">
+          <span class="card-stat-dot"></span>
+          <span id="stat-vault">Chips: 1000</span>
+        </div><br>
+        <a class="play-btn" href="https://oasis-vault-v4.surge.sh" target="_blank" onclick="event.stopPropagation()">
+          PLAY NOW <span class="arrow">→</span>
+        </a>
+      </div>
+
+      <!-- Iron Frontier -->
+      <div class="game-card" data-color="green" onclick="launchGame('https://iron-frontier-v4.surge.sh')">
+        <span class="card-icon">⚙️</span>
+        <div class="card-name">Iron Frontier</div>
+        <div class="card-tagline">Build. Defend. Dominate the frontier.</div>
+        <div class="card-stat">
+          <span class="card-stat-dot"></span>
+          <span id="stat-iron">Resources: 0</span>
+        </div><br>
+        <a class="play-btn" href="https://iron-frontier-v4.surge.sh" target="_blank" onclick="event.stopPropagation()">
+          PLAY NOW <span class="arrow">→</span>
+        </a>
+      </div>
+
+      <!-- Colosseum -->
+      <div class="game-card" data-color="red" onclick="launchGame('https://colosseum-v4.surge.sh')">
+        <span class="card-icon">🏛️</span>
+        <div class="card-name">Colosseum</div>
+        <div class="card-tagline">Fight for glory. Die with honor.</div>
+        <div class="card-stat">
+          <span class="card-stat-dot"></span>
+          <span id="stat-colos">Victories: 0</span>
+        </div><br>
+        <a class="play-btn" href="https://colosseum-v4.surge.sh" target="_blank" onclick="event.stopPropagation()">
+          PLAY NOW <span class="arrow">→</span>
+        </a>
+      </div>
+
+    </div><!-- /games-grid -->
+  </main>
+
+  <footer>© 2025 The Oasis &mdash; Powered by WebGPU</footer>
+</div><!-- /page-wrapper -->
+
+<script src="https://unpkg.com/@klever/sdk-web"></script>
+<script>
+// ═══════════════════════════════════════════
+//  PARTICLE FIELD
+// ═══════════════════════════════════════════
+(function initParticles() {
+  const canvas = document.getElementById('particles');
+  const ctx = canvas.getContext('2d');
+  let W, H, particles = [];
+
+  function resize() {
+    W = canvas.width  = window.innerWidth;
+    H = canvas.height = window.innerHeight;
+  }
+
+  function Particle() {
+    this.reset = function() {
+      this.x  = Math.random() * W;
+      this.y  = Math.random() * H;
+      this.r  = Math.random() * 1.6 + 0.3;
+      this.vx = (Math.random() - 0.5) * 0.25;
+      this.vy = (Math.random() - 0.5) * 0.25;
+      this.alpha = Math.random() * 0.6 + 0.1;
+      const palette = ['#8B5CF6','#3B82F6','#FFD700','#14B8A6','#EF4444','#22C55E','#C4B5FD'];
+      this.color = palette[Math.floor(Math.random() * palette.length)];
+      this.twinkleSpeed = Math.random() * 0.02 + 0.005;
+      this.twinkleDir   = Math.random() > 0.5 ? 1 : -1;
+    };
+    this.reset();
+    this.y = Math.random() * H; // spread on init
+  }
+
+  function initParts() {
+    particles = [];
+    const count = Math.floor((W * H) / 7000);
+    for (let i = 0; i < count; i++) { const p = new Particle(); particles.push(p); }
+  }
+
+  function draw() {
+    ctx.clearRect(0, 0, W, H);
+    for (const p of particles) {
+      p.alpha += p.twinkleSpeed * p.twinkleDir;
+      if (p.alpha >= 0.75) { p.alpha = 0.75; p.twinkleDir = -1; }
+      if (p.alpha <= 0.05) { p.alpha = 0.05; p.twinkleDir =  1; }
+      p.x += p.vx; p.y += p.vy;
+      if (p.x < -5) p.x = W + 5;
+      if (p.x > W + 5) p.x = -5;
+      if (p.y < -5) p.y = H + 5;
+      if (p.y > H + 5) p.y = -5;
+      ctx.save();
+      ctx.globalAlpha = p.alpha;
+      ctx.fillStyle   = p.color;
+      ctx.shadowColor = p.color;
+      ctx.shadowBlur  = 6;
+      ctx.beginPath(); ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
+      ctx.fill(); ctx.restore();
+    }
+    requestAnimationFrame(draw);
+  }
+
+  window.addEventListener('resize', () => { resize(); initParts(); });
+  resize(); initParts(); draw();
+})();
+
+// ═══════════════════════════════════════════
+//  OASIS PROFILE SYSTEM
+// ═══════════════════════════════════════════
+const RANK_THRESHOLDS = [
+  { wins: 1000, rank: 'IMMORTAL',  icon: '👑' },
+  { wins: 500,  rank: 'LEGEND',    icon: '⚡' },
+  { wins: 100,  rank: 'CHAMPION',  icon: '🏆' },
+  { wins: 0,    rank: 'EXPLORER',  icon: '⚔'  },
+];
+
+function getProfile() {
+  try {
+    const raw = localStorage.getItem('oasis_profile');
+    if (raw) return JSON.parse(raw);
+  } catch(e) {}
+  return { balance: 0, gamesPlayed: 0, wins: 0, rank: 'EXPLORER' };
+}
+
+function calcRank(wins) {
+  for (const t of RANK_THRESHOLDS) { if (wins >= t.wins) return t; }
+  return RANK_THRESHOLDS[RANK_THRESHOLDS.length - 1];
+}
+
+function gatherBalance() {
+  const keys = [
+    'shadowrealm_tokens','lightbringer_tokens','shadowdeck_tokens',
+    'vault_tokens','ironfrontier_tokens','colosseum_tokens','oasis_balance'
+  ];
+  return keys.reduce((sum, k) => {
+    try { return sum + (parseFloat(localStorage.getItem(k)) || 0); } catch(e) { return sum; }
+  }, 0);
+}
+
+function renderProfile() {
+  const p   = getProfile();
+  const bal = Math.max(p.balance, gatherBalance());
+  const t   = calcRank(p.wins);
+
+  document.getElementById('profileRank').textContent = t.rank;
+  document.getElementById('profileBal').textContent  = bal.toLocaleString() + ' $OASIS';
+  document.getElementById('profileAvatar').textContent = t.icon;
+  document.getElementById('pcRank').textContent   = t.rank;
+  document.getElementById('pcBal').textContent    = bal.toLocaleString();
+  document.getElementById('pcPlayed').textContent = p.gamesPlayed;
+  document.getElementById('pcWins').textContent   = p.wins;
+  const wr = p.gamesPlayed > 0 ? Math.round((p.wins / p.gamesPlayed) * 100) + '%' : '—';
+  document.getElementById('pcWinRate').textContent = wr;
+}
+
+function toggleProfile() {
+  const card = document.getElementById('profileCard');
+  card.classList.toggle('open');
+  renderProfile();
+}
+
+// Close profile on outside click
+document.addEventListener('click', function(e) {
+  const widget = document.querySelector('.profile-widget');
+  if (!widget.contains(e.target)) {
+    document.getElementById('profileCard').classList.remove('open');
+  }
+});
+
+// ═══════════════════════════════════════════
+//  LIVE STATS FROM localStorage
+// ═══════════════════════════════════════════
+function loadStats() {
+  const get = (key, def) => { try { return localStorage.getItem(key) ?? def; } catch(e) { return def; } };
+
+  const shadowScore = get('shadowrealm_highscore', '0');
+  document.getElementById('stat-shadow').textContent = 'High Score: ' + parseInt(shadowScore).toLocaleString();
+
+  const lightStreak = get('lightbringer_streak', '0');
+  document.getElementById('stat-light').textContent = 'Best Streak: ' + parseInt(lightStreak).toLocaleString();
+
+  const deckChips = get('shadowdeck_chips', '1000');
+  document.getElementById('stat-deck').textContent = 'Chips: ' + parseInt(deckChips).toLocaleString();
+
+  const vaultChips = get('vault_chips', '1000');
+  document.getElementById('stat-vault').textContent = 'Chips: ' + parseInt(vaultChips).toLocaleString();
+
+  const ironRes = get('ironfrontier_resources', '0');
+  document.getElementById('stat-iron').textContent = 'Resources: ' + parseInt(ironRes).toLocaleString();
+
+  const colosVic = get('colosseum_victories', '0');
+  document.getElementById('stat-colos').textContent = 'Victories: ' + parseInt(colosVic).toLocaleString();
+}
+
+// ═══════════════════════════════════════════
+//  KLEVER WALLET
+// ═══════════════════════════════════════════
+async function connectWallet() {
+  const btn = document.getElementById('walletBtn');
+  btn.textContent = '⌛ Connecting...';
+  btn.disabled = true;
+  try {
+    if (typeof window.kleverWeb !== 'undefined') {
+      await window.kleverWeb.initialize();
+      const addr = await window.kleverWeb.getWalletAddress();
+      const short = addr ? addr.slice(0,6) + '…' + addr.slice(-4) : 'Connected';
+      btn.textContent = '✓ ' + short;
+      btn.classList.add('connected');
+      document.getElementById('pcWallet').textContent = addr || 'Connected';
+    } else {
+      btn.textContent = '⬡ Install Klever Ext';
+      btn.classList.remove('connected');
+      window.open('https://klever.io', '_blank');
+    }
+  } catch(err) {
+    console.warn('Klever wallet error:', err);
+    btn.textContent = '⬡ Connect Wallet';
+  }
+  btn.disabled = false;
+}
+
+// ═══════════════════════════════════════════
+//  LAUNCH GAME
+// ═══════════════════════════════════════════
+function launchGame(url) {
+  // card click fallback – link already handles navigation
+}
+
+// ═══════════════════════════════════════════
+//  INIT
+// ═══════════════════════════════════════════
+document.addEventListener('DOMContentLoaded', function() {
+  renderProfile();
+  loadStats();
+  // Reload stats whenever localStorage changes from other tabs/games
+  window.addEventListener('storage', function() { renderProfile(); loadStats(); });
+});
+</script>
+</body>
+</html>
