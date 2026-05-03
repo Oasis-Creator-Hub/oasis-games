@@ -1,0 +1,1002 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+<title>Stellar Salvage | Oasis</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Audiowide&family=Rajdhani:wght@500;600;700&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg-deep:#03060f;
+    --bg-mid:#0a1424;
+    --panel:#0f1a30;
+    --steel:#94a3b8;
+    --pearl:#e2e8f0;
+    --scrap:#fbbf24;
+    --alloy:#22d3ee;
+    --plasma:#a78bfa;
+    --warp:#ff2bd6;
+    --good:#22c55e;
+    --line:rgba(34,211,238,0.20);
+  }
+  *{margin:0;padding:0;box-sizing:border-box;}
+  html,body{height:100%;overflow:hidden;}
+  body{
+    background:radial-gradient(ellipse at 50% 40%,rgba(34,211,238,0.10),transparent 65%),linear-gradient(180deg,#03060f 0%,#0a1424 100%);
+    color:var(--pearl);font-family:'Rajdhani',sans-serif;
+    height:100vh;display:flex;flex-direction:column;
+    user-select:none;-webkit-tap-highlight-color:transparent;
+  }
+  /* HEADER */
+  header{
+    display:flex;justify-content:space-between;align-items:center;
+    padding:8px 16px;background:rgba(10,20,36,0.85);
+    border-bottom:1px solid var(--line);position:relative;z-index:10;
+  }
+  .left,.right{display:flex;align-items:center;gap:10px;}
+  .oasis-link{
+    display:flex;align-items:center;gap:6px;text-decoration:none;
+    padding:4px 10px;border-radius:6px;
+    background:linear-gradient(135deg,rgba(124,58,237,0.18),rgba(34,211,238,0.14));
+    border:1px solid rgba(124,58,237,0.40);transition:all 0.18s;
+  }
+  .oasis-link:hover{filter:brightness(1.2);}
+  .oasis-mark{width:14px;height:14px;border-radius:3px;background:linear-gradient(135deg,#7c3aed,#22d3ee);}
+  .oasis-text{font-family:'Audiowide',sans-serif;font-size:0.7rem;letter-spacing:0.16em;color:#fff;}
+  .divider{width:1px;height:18px;background:var(--line);}
+  .game-title{font-family:'Audiowide',sans-serif;font-size:1.05rem;letter-spacing:0.18em;color:var(--pearl);text-shadow:0 0 12px var(--alloy);}
+  .game-title .accent{color:var(--scrap);text-shadow:0 0 12px var(--scrap);}
+  .version-badge{
+    font-family:'JetBrains Mono',monospace;font-size:0.65rem;font-weight:700;
+    background:rgba(34,211,238,0.18);border:1px solid rgba(34,211,238,0.45);
+    color:var(--alloy);padding:2px 8px;border-radius:4px;letter-spacing:0.08em;
+  }
+  .wallet-pill{
+    display:flex;align-items:center;gap:6px;padding:5px 11px;border-radius:6px;
+    background:rgba(124,58,237,0.18);border:1px solid rgba(124,58,237,0.45);
+    color:#cbd5e1;font-size:0.72rem;font-weight:600;cursor:pointer;
+    font-family:'JetBrains Mono',monospace;letter-spacing:0.04em;
+  }
+  .wallet-pill .dot{width:6px;height:6px;border-radius:50%;background:#475569;}
+  .wallet-pill.connected .dot{background:var(--good);box-shadow:0 0 8px var(--good);}
+  .wallet-pill.connected{border-color:rgba(34,197,94,0.5);}
+  .help-btn{
+    width:26px;height:26px;border-radius:6px;background:rgba(34,211,238,0.10);
+    border:1px solid rgba(34,211,238,0.35);color:var(--alloy);font-weight:700;cursor:pointer;
+    font-family:'JetBrains Mono',monospace;display:flex;align-items:center;justify-content:center;
+  }
+
+  /* layout */
+  #game-container{
+    flex:1;display:flex;flex-direction:row;overflow:hidden;
+  }
+  #left-pane{
+    flex:1;position:relative;min-width:0;
+  }
+  #gameCanvas{width:100%;height:100%;display:block;cursor:pointer;}
+
+  /* resource bar */
+  #resource-bar{
+    position:absolute;top:14px;left:14px;right:14px;
+    display:flex;justify-content:center;gap:10px;flex-wrap:wrap;pointer-events:none;
+  }
+  .res-tile{
+    background:rgba(15,26,48,0.85);
+    border:1px solid var(--line);border-radius:6px;
+    padding:7px 14px;display:flex;align-items:center;gap:10px;
+    backdrop-filter:blur(6px);
+  }
+  .res-tile .icon{
+    width:24px;height:24px;border-radius:50%;
+    display:flex;align-items:center;justify-content:center;
+    font-family:'Audiowide',sans-serif;font-weight:800;color:#0a1424;
+  }
+  .res-tile.scrap  .icon{background:radial-gradient(circle at 30% 30%,#fde68a,#b45309);box-shadow:0 0 10px rgba(251,191,36,0.6);}
+  .res-tile.alloy  .icon{background:radial-gradient(circle at 30% 30%,#67e8f9,#0e7490);box-shadow:0 0 10px rgba(34,211,238,0.6);}
+  .res-tile.plasma .icon{background:radial-gradient(circle at 30% 30%,#c4b5fd,#5b21b6);box-shadow:0 0 10px rgba(167,139,250,0.6);}
+  .res-tile.warp   .icon{background:radial-gradient(circle at 30% 30%,#fce7f3,#9d174d);box-shadow:0 0 10px rgba(255,43,214,0.7);}
+  .res-tile .body{display:flex;flex-direction:column;}
+  .res-tile .label{
+    font-family:'JetBrains Mono',monospace;font-size:0.55rem;
+    letter-spacing:0.16em;color:var(--steel);text-transform:uppercase;line-height:1;
+  }
+  .res-tile .val{
+    font-family:'Audiowide',sans-serif;font-size:1.05rem;color:var(--pearl);
+    line-height:1.05;
+  }
+  .res-tile .rate{
+    font-family:'JetBrains Mono',monospace;font-size:0.6rem;color:var(--good);line-height:1;margin-top:1px;
+  }
+
+  /* tap pop */
+  .tap-pop{
+    position:absolute;pointer-events:none;
+    font-family:'Audiowide',sans-serif;font-weight:800;font-size:1.1rem;
+    color:var(--scrap);text-shadow:0 0 8px rgba(0,0,0,0.9);
+    animation:tapFloat 0.7s ease-out forwards;
+    letter-spacing:0.05em;
+  }
+  .tap-pop.crit{color:var(--warp);font-size:1.6rem;}
+  @keyframes tapFloat{
+    0%{transform:translateY(0) scale(0.7);opacity:1;}
+    25%{transform:translateY(-10px) scale(1.2);opacity:1;}
+    100%{transform:translateY(-50px) scale(1);opacity:0;}
+  }
+
+  /* upgrade rail */
+  #rail{
+    width:300px;flex-shrink:0;
+    background:linear-gradient(180deg,rgba(15,26,48,0.92),rgba(10,20,36,0.96));
+    border-left:1px solid var(--line);
+    display:flex;flex-direction:column;overflow:hidden;
+  }
+  .rail-tabs{
+    display:flex;border-bottom:1px solid var(--line);
+  }
+  .rail-tab{
+    flex:1;padding:10px;
+    font-family:'Audiowide',sans-serif;font-size:0.78rem;letter-spacing:0.10em;
+    background:transparent;border:none;color:var(--steel);
+    cursor:pointer;transition:all 0.16s;
+  }
+  .rail-tab.active{background:rgba(34,211,238,0.10);color:var(--alloy);box-shadow:inset 0 -2px 0 var(--alloy);}
+  .rail-content{
+    flex:1;overflow-y:auto;padding:12px;display:flex;flex-direction:column;gap:8px;
+  }
+  .upgrade-card{
+    background:linear-gradient(160deg,rgba(15,26,48,0.85),rgba(10,20,36,0.95));
+    border:1px solid var(--line);border-radius:6px;
+    padding:10px 12px;display:flex;align-items:center;gap:10px;
+    cursor:pointer;transition:all 0.16s;
+  }
+  .upgrade-card:hover{border-color:var(--alloy);transform:translateY(-1px);}
+  .upgrade-card.disabled{opacity:0.45;cursor:not-allowed;}
+  .upgrade-card.disabled:hover{transform:none;border-color:var(--line);}
+  .upgrade-card .glyph{
+    width:38px;height:38px;border-radius:8px;flex-shrink:0;
+    display:flex;align-items:center;justify-content:center;
+    font-family:'Audiowide',sans-serif;font-size:1.1rem;color:#fff;font-weight:800;
+  }
+  .upgrade-card .body{flex:1;min-width:0;}
+  .upgrade-card .name{
+    font-family:'Audiowide',sans-serif;font-size:0.78rem;letter-spacing:0.06em;
+    color:var(--pearl);
+  }
+  .upgrade-card .desc{
+    font-family:'JetBrains Mono',monospace;font-size:0.62rem;
+    color:var(--steel);line-height:1.4;margin-top:2px;
+  }
+  .upgrade-card .meta{
+    text-align:right;flex-shrink:0;
+    font-family:'JetBrains Mono',monospace;font-size:0.7rem;
+  }
+  .upgrade-card .meta .lv{color:var(--scrap);font-weight:700;}
+  .upgrade-card .meta .cost{color:var(--steel);font-size:0.66rem;}
+
+  .glyph-tap   {background:linear-gradient(135deg,#fbbf24,#b45309);box-shadow:0 0 10px rgba(251,191,36,0.4);}
+  .glyph-drone {background:linear-gradient(135deg,#22d3ee,#0e7490);box-shadow:0 0 10px rgba(34,211,238,0.4);}
+  .glyph-frigate{background:linear-gradient(135deg,#a78bfa,#5b21b6);box-shadow:0 0 10px rgba(167,139,250,0.4);}
+  .glyph-foundry{background:linear-gradient(135deg,#fde047,#f59e0b);box-shadow:0 0 10px rgba(253,224,71,0.4);}
+  .glyph-prism{background:linear-gradient(135deg,#67e8f9,#22d3ee);box-shadow:0 0 10px rgba(103,232,249,0.4);}
+  .glyph-warp {background:linear-gradient(135deg,#ff2bd6,#9d174d);box-shadow:0 0 14px rgba(255,43,214,0.5);}
+
+  .warp-section{
+    border:1px solid rgba(255,43,214,0.5);
+    background:linear-gradient(160deg,rgba(157,23,77,0.20),rgba(10,20,36,0.85));
+    border-radius:8px;padding:14px;margin-top:auto;
+    box-shadow:0 0 24px rgba(255,43,214,0.15);
+  }
+  .warp-section h3{
+    font-family:'Audiowide',sans-serif;font-size:0.85rem;
+    color:var(--warp);letter-spacing:0.12em;margin-bottom:6px;
+    text-shadow:0 0 8px var(--warp);
+  }
+  .warp-section .info{
+    font-family:'JetBrains Mono',monospace;font-size:0.7rem;color:var(--steel);line-height:1.5;
+    margin-bottom:8px;
+  }
+  .warp-btn{
+    width:100%;padding:10px;border:none;border-radius:6px;
+    background:linear-gradient(135deg,var(--warp),#9d174d);
+    color:#fff;font-family:'Audiowide',sans-serif;font-size:0.85rem;
+    letter-spacing:0.16em;cursor:pointer;
+    box-shadow:0 4px 14px rgba(255,43,214,0.40);
+    transition:all 0.16s;
+  }
+  .warp-btn:hover{filter:brightness(1.18);}
+  .warp-btn:disabled{opacity:0.4;cursor:not-allowed;}
+
+  /* MENUS */
+  .menu{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;background:rgba(3,6,15,0.86);backdrop-filter:blur(10px);z-index:30;}
+  .menu.hidden{display:none;}
+  .menu .panel{
+    background:linear-gradient(160deg,rgba(15,26,48,0.96),rgba(10,20,36,0.96));
+    border:1px solid var(--line);border-top:2px solid var(--alloy);
+    border-radius:8px;padding:28px 36px;max-width:560px;width:90%;
+    text-align:center;
+    box-shadow:0 14px 60px rgba(34,211,238,0.20);
+  }
+  .menu h1{
+    font-family:'Audiowide',sans-serif;font-size:2.4rem;letter-spacing:0.10em;
+    color:var(--pearl);text-shadow:0 0 14px var(--alloy);margin-bottom:6px;
+  }
+  .menu h1 .accent{color:var(--scrap);text-shadow:0 0 14px var(--scrap);}
+  .menu h2{font-family:'Audiowide',sans-serif;font-size:1.4rem;letter-spacing:0.16em;color:var(--scrap);margin-bottom:10px;}
+  .menu p{font-size:1rem;line-height:1.5;color:#cbd5e1;margin-bottom:6px;}
+  .menu .row{display:flex;gap:12px;flex-wrap:wrap;justify-content:center;margin-top:14px;}
+  button.salv-btn{
+    background:linear-gradient(135deg,var(--alloy),#0e7490);color:#0a1424;border:none;border-radius:6px;
+    padding:10px 24px;font-family:'Audiowide',sans-serif;font-size:0.85rem;font-weight:800;
+    letter-spacing:0.18em;cursor:pointer;box-shadow:0 6px 18px rgba(34,211,238,0.40);
+    transition:all 0.18s;
+  }
+  button.salv-btn:hover{filter:brightness(1.18);transform:translateY(-1px);}
+  button.salv-btn.ghost{background:transparent;border:1px solid var(--line);color:#cbd5e1;box-shadow:none;}
+  button.salv-btn.ghost:hover{background:rgba(34,211,238,0.10);color:#fff;}
+
+  /* toast */
+  #toast{
+    position:absolute;top:80px;left:50%;transform:translateX(-50%);
+    background:rgba(15,26,48,0.95);border:1px solid var(--alloy);
+    padding:8px 18px;border-radius:5px;
+    font-family:'Audiowide',sans-serif;font-size:0.82rem;letter-spacing:0.16em;
+    color:var(--alloy);text-shadow:0 0 8px var(--alloy);
+    opacity:0;transition:opacity 0.3s;pointer-events:none;
+    z-index:30;
+  }
+  #toast.show{opacity:1;}
+
+  @media (max-width:760px){
+    #game-container{flex-direction:column;}
+    #left-pane{height:55vh;}
+    #rail{width:100%;height:auto;flex:1;border-left:none;border-top:1px solid var(--line);}
+    .game-title{font-size:0.85rem;letter-spacing:0.10em;}
+  }
+</style>
+</head>
+<body>
+<header>
+  <div class="left">
+    <a class="oasis-link" href="https://oasis-hub.pages.dev" target="_top" title="Back to Oasis Hub">
+      <span class="oasis-mark"></span><span class="oasis-text">OASIS</span>
+    </a>
+    <span class="divider"></span>
+    <span class="game-title">STELLAR <span class="accent">SALVAGE</span></span>
+    <span class="version-badge">v1.0</span>
+  </div>
+  <div class="right">
+    <button id="wallet-pill" class="wallet-pill" onclick="connectWallet()">
+      <span class="dot"></span><span id="wallet-text">CONNECT KLEVER</span>
+    </button>
+    <button class="help-btn" onclick="toggleHelp()">?</button>
+  </div>
+</header>
+
+<div id="game-container">
+  <div id="left-pane">
+    <canvas id="gameCanvas"></canvas>
+    <div id="resource-bar">
+      <div class="res-tile scrap"><div class="icon">S</div><div class="body"><div class="label">SCRAP</div><div class="val" id="scrap-val">0</div><div class="rate" id="scrap-rate">+0/s</div></div></div>
+      <div class="res-tile alloy"><div class="icon">A</div><div class="body"><div class="label">ALLOY</div><div class="val" id="alloy-val">0</div><div class="rate" id="alloy-rate">+0/s</div></div></div>
+      <div class="res-tile plasma"><div class="icon">P</div><div class="body"><div class="label">PLASMA</div><div class="val" id="plasma-val">0</div><div class="rate" id="plasma-rate">+0/s</div></div></div>
+      <div class="res-tile warp"><div class="icon">Ω</div><div class="body"><div class="label">WARP</div><div class="val" id="warp-val">0</div><div class="rate" id="warp-mul">×1.00</div></div></div>
+    </div>
+    <div id="toast"></div>
+  </div>
+
+  <aside id="rail">
+    <div class="rail-tabs">
+      <button class="rail-tab active" data-tab="upgrades">UPGRADES</button>
+      <button class="rail-tab" data-tab="modules">MODULES</button>
+    </div>
+    <div class="rail-content" id="rail-content"></div>
+    <div class="warp-section">
+      <h3>WARP DRIVE</h3>
+      <div class="info" id="warp-info">Reach <strong id="warp-thresh">10K</strong> scrap to engage.<br>Each warp grants <strong>+5%</strong> permanent multiplier.</div>
+      <button class="warp-btn" id="warp-btn" onclick="warpDrive()" disabled>ENGAGE WARP</button>
+    </div>
+  </aside>
+
+  <!-- HOME -->
+  <div id="home-screen" class="menu">
+    <div class="panel">
+      <h1>STELLAR <span class="accent">SALVAGE</span></h1>
+      <p style="color:var(--alloy);letter-spacing:0.16em;font-family:'Audiowide',sans-serif;font-size:0.78rem;margin-bottom:10px;">DRIFT · MINE · WARP</p>
+      <p>Tap the asteroid to extract <strong>scrap</strong>. Buy drones to auto-mine. Refine alloys, then plasma. <strong>Warp</strong> when you've built enough mass — keep a multiplier forever.</p>
+      <div class="row">
+        <button class="salv-btn" onclick="startGame()">DROP IN</button>
+        <button class="salv-btn ghost" onclick="toggleHelp()">CONTROLS</button>
+      </div>
+      <p style="margin-top:14px;font-size:0.78rem;color:var(--steel);">Lifetime warps: <strong style="color:var(--warp);" id="home-warps">0</strong></p>
+    </div>
+  </div>
+
+  <!-- HELP -->
+  <div id="help-screen" class="menu hidden">
+    <div class="panel" style="text-align:left;">
+      <h2 style="text-align:center;">HOW TO PLAY</h2>
+      <p style="font-family:'JetBrains Mono',monospace;font-size:0.85rem;line-height:1.7;">
+        <strong style="color:var(--scrap);">Tap / click</strong> the asteroid → +scrap<br>
+        <strong style="color:var(--alloy);">Drones</strong> auto-mine while you idle<br>
+        <strong style="color:var(--plasma);">Frigates</strong> refine 100 scrap → 1 alloy<br>
+        <strong style="color:var(--scrap);">Foundries</strong> refine 50 alloy → 1 plasma<br>
+        <strong style="color:var(--warp);">Warp Drive</strong> at 10K scrap → permanent ×1.05 multiplier
+      </p>
+      <p style="margin-top:12px;color:var(--steel);">Tap multiplier upgrades grow your tap value. Drone/frigate/foundry levels stack. Modules give passive boosts that persist across warps.</p>
+      <div class="row" style="justify-content:center;">
+        <button class="salv-btn ghost" onclick="toggleHelp()">CLOSE</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+// ==========================================================
+// STELLAR SALVAGE — idle/clicker
+// ==========================================================
+
+const canvas = document.getElementById('gameCanvas');
+const ctx    = canvas.getContext('2d');
+const leftPane = document.getElementById('left-pane');
+
+let viewW=600, viewH=600;
+function resizeCanvas(){
+  const r = leftPane.getBoundingClientRect();
+  canvas.width  = r.width;
+  canvas.height = r.height;
+  viewW = canvas.width;
+  viewH = canvas.height;
+}
+window.addEventListener('resize', resizeCanvas);
+resizeCanvas();
+
+// audio
+const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+function tone({freq=440,type='square',dur=0.06,gain=0.10,slide=null}={}){
+  if (audioCtx.state==='suspended') audioCtx.resume();
+  const o=audioCtx.createOscillator(),g=audioCtx.createGain();
+  o.connect(g); g.connect(audioCtx.destination);
+  o.type=type; o.frequency.setValueAtTime(freq,audioCtx.currentTime);
+  if (slide!==null) o.frequency.exponentialRampToValueAtTime(slide,audioCtx.currentTime+dur);
+  g.gain.setValueAtTime(gain,audioCtx.currentTime);
+  g.gain.exponentialRampToValueAtTime(0.001,audioCtx.currentTime+dur);
+  o.start(); o.stop(audioCtx.currentTime+dur);
+}
+const sfx = {
+  tap:    ()=>tone({freq:560+Math.random()*120,type:'square',dur:0.06,gain:0.10,slide:200}),
+  crit:   ()=>{tone({freq:880,type:'sine',dur:0.10,gain:0.18});setTimeout(()=>tone({freq:1320,type:'sine',dur:0.14,gain:0.18}),100);},
+  buy:    ()=>{tone({freq:660,type:'sine',dur:0.08,gain:0.16});setTimeout(()=>tone({freq:990,type:'sine',dur:0.10,gain:0.16}),80);},
+  refine: ()=>tone({freq:480,type:'triangle',dur:0.08,gain:0.10}),
+  warp:   ()=>{[0,150,300,450].forEach((t,i)=>setTimeout(()=>tone({freq:330+i*220,type:'sine',dur:0.20,gain:0.18}),t));},
+};
+
+// state
+const SAVE_KEY = 'stellarsalvage:save';
+const DEFAULT_STATE = {
+  scrap:0, alloy:0, plasma:0,
+  warps:0,            // lifetime warps
+  warpMul:1.0,        // permanent multiplier from warps
+  lifetimeScrap:0,
+  // levels (reset on warp)
+  tap:1, droneL:0, frigateL:0, foundryL:0, prismL:0,
+  // modules (persist across warps; cost plasma)
+  modCrit:0, modAuto:0, modSpark:0, modBlessing:0,
+};
+function loadState(){
+  try {
+    const j = localStorage.getItem(SAVE_KEY);
+    if (!j) return null;
+    return {...DEFAULT_STATE, ...JSON.parse(j)};
+  } catch(e){ return null; }
+}
+function saveState(){ localStorage.setItem(SAVE_KEY, JSON.stringify(state)); }
+let state = loadState() || {...DEFAULT_STATE};
+
+// upgrade definitions
+const UPGRADES = {
+  tap: {
+    name:'TAP POWER', glyph:'+', cls:'glyph-tap',
+    desc: lvl => `Each tap = ${tapValue(lvl).toFixed(1)} scrap`,
+    base:15, growth:1.18, max:200,
+    apply: ()=>{},
+  },
+  droneL: {
+    name:'MINING DRONE', glyph:'D', cls:'glyph-drone',
+    desc: lvl => `${droneRate(lvl).toFixed(1)} scrap/s passive`,
+    base:30, growth:1.16, max:200,
+  },
+  frigateL: {
+    name:'REFINER FRIGATE', glyph:'F', cls:'glyph-frigate',
+    desc: lvl => `${frigateRate(lvl).toFixed(2)} alloy/s (uses 100 scrap each)`,
+    base:250, growth:1.22, max:150,
+  },
+  foundryL: {
+    name:'PLASMA FOUNDRY', glyph:'⊕', cls:'glyph-foundry',
+    desc: lvl => `${foundryRate(lvl).toFixed(3)} plasma/s (uses 50 alloy each)`,
+    base:5000, growth:1.30, max:120,
+    costRes:'alloy',
+  },
+  prismL: {
+    name:'PRISM ARRAY', glyph:'◆', cls:'glyph-prism',
+    desc: lvl => `+${(prismMul(lvl)*100).toFixed(1)}% scrap rate`,
+    base:1000, growth:1.40, max:80,
+  },
+};
+const MODULES = {
+  modCrit: {
+    name:'CRITICAL CALIBRATOR', glyph:'⚡', cls:'glyph-tap',
+    desc: lvl => `${(critChance(lvl)*100).toFixed(0)}% tap crit chance (×5 tap)`,
+    base:1, growth:1.6, max:25, costRes:'plasma',
+  },
+  modAuto: {
+    name:'AUTO-TAPPER', glyph:'∿', cls:'glyph-drone',
+    desc: lvl => `${autoTapRate(lvl).toFixed(2)} taps/s automatic`,
+    base:2, growth:1.7, max:30, costRes:'plasma',
+  },
+  modSpark: {
+    name:'OVERCLOCK SPARK', glyph:'☆', cls:'glyph-foundry',
+    desc: lvl => `+${(sparkMul(lvl)*100).toFixed(0)}% all rates`,
+    base:3, growth:1.8, max:30, costRes:'plasma',
+  },
+  modBlessing: {
+    name:'WARP BLESSING', glyph:'Ω', cls:'glyph-warp',
+    desc: lvl => `+${(blessingMul(lvl)*100).toFixed(0)}% bonus per warp`,
+    base:5, growth:2.0, max:30, costRes:'plasma',
+  },
+};
+
+// rate calculations
+function tapValue(lvl=state.tap){
+  const base = 1 + (lvl-1)*0.7;
+  return base * globalMul();
+}
+function droneRate(lvl=state.droneL){
+  if (lvl<=0) return 0;
+  return (0.5 + (lvl-1)*0.4) * Math.pow(1.06, lvl-1) * globalMul();
+}
+function frigateRate(lvl=state.frigateL){
+  if (lvl<=0) return 0;
+  return (0.05 + (lvl-1)*0.04) * Math.pow(1.05, lvl-1) * globalMul();
+}
+function foundryRate(lvl=state.foundryL){
+  if (lvl<=0) return 0;
+  return (0.005 + (lvl-1)*0.004) * Math.pow(1.04, lvl-1) * globalMul();
+}
+function prismMul(lvl=state.prismL){
+  return lvl * 0.04;
+}
+function critChance(lvl=state.modCrit){ return Math.min(0.5, lvl*0.04); }
+function autoTapRate(lvl=state.modAuto){ return lvl*0.5; }
+function sparkMul(lvl=state.modSpark){ return lvl*0.10; }
+function blessingMul(lvl=state.modBlessing){ return lvl*0.05; }
+function globalMul(){
+  return state.warpMul
+    * (1 + prismMul())
+    * (1 + sparkMul())
+    * (1 + state.warps*blessingMul());
+}
+
+function getCost(key){
+  const def = UPGRADES[key] || MODULES[key];
+  const lvl = state[key];
+  return Math.ceil(def.base * Math.pow(def.growth, lvl));
+}
+
+// ============ TAP / CLICK ============
+function onTap(x, y){
+  if (!asteroid) return;
+  const dx = x - asteroid.x, dy = y - asteroid.y;
+  if (dx*dx + dy*dy < asteroid.r*asteroid.r){
+    let amt = tapValue();
+    let crit = false;
+    if (Math.random() < critChance()){
+      amt *= 5;
+      crit = true;
+    }
+    state.scrap += amt;
+    state.lifetimeScrap += amt;
+    asteroid.shake = 1;
+    spawnTapPop(x, y, amt, crit);
+    spawnDebris(x, y);
+    if (crit) sfx.crit(); else sfx.tap();
+  }
+}
+canvas.addEventListener('click', e=>{
+  const r = canvas.getBoundingClientRect();
+  onTap(e.clientX - r.left, e.clientY - r.top);
+});
+canvas.addEventListener('touchstart', e=>{
+  e.preventDefault();
+  const r = canvas.getBoundingClientRect();
+  for (const t of e.changedTouches){
+    onTap(t.clientX - r.left, t.clientY - r.top);
+  }
+}, {passive:false});
+
+function spawnTapPop(x, y, amt, crit){
+  const el = document.createElement('div');
+  el.className = 'tap-pop' + (crit?' crit':'');
+  el.textContent = `+${formatN(amt)}` + (crit?' CRIT!':'');
+  el.style.left = `${x}px`;
+  el.style.top  = `${y}px`;
+  el.style.transform = 'translateX(-50%)';
+  leftPane.appendChild(el);
+  setTimeout(()=>el.remove(), 700);
+}
+
+// ============ ASTEROID + DRONES (canvas) ============
+const asteroid = {
+  x:0, y:0, r:120,
+  rot:0, shake:0,
+  craters: [],
+};
+function initAsteroid(){
+  asteroid.x = viewW/2;
+  asteroid.y = viewH/2;
+  asteroid.r = Math.min(viewW, viewH) * 0.22;
+  asteroid.craters = [];
+  for (let i=0;i<10;i++){
+    asteroid.craters.push({
+      a: Math.random()*Math.PI*2,
+      r: asteroid.r*(0.4 + Math.random()*0.5),
+      cr: 4 + Math.random()*10,
+    });
+  }
+}
+const drones = [];
+const debris = [];
+const stars = [];
+function initStars(){
+  stars.length = 0;
+  for (let i=0;i<80;i++){
+    stars.push({
+      x: Math.random()*viewW, y: Math.random()*viewH,
+      r: Math.random()*1.6+0.4, t: Math.random()*Math.PI*2,
+    });
+  }
+}
+initStars();
+initAsteroid();
+
+function rebuildDrones(){
+  drones.length = 0;
+  const total = state.droneL;
+  if (total<=0) return;
+  // up to 12 visualized
+  const visN = Math.min(12, total);
+  for (let i=0;i<visN;i++){
+    drones.push({
+      orbitR: asteroid.r + 30 + (i%3)*16,
+      angle: (i / visN) * Math.PI*2,
+      speed: 0.001 + (i%3)*0.0004,
+      type: 'drone',
+    });
+  }
+  // also visualize frigates and foundries as bigger ships in farther orbits
+  for (let i=0;i<Math.min(6,state.frigateL);i++){
+    drones.push({
+      orbitR: asteroid.r + 90 + (i%2)*20,
+      angle: (i/6)*Math.PI*2 + 0.3,
+      speed: 0.0007,
+      type:'frigate',
+    });
+  }
+  for (let i=0;i<Math.min(4,state.foundryL);i++){
+    drones.push({
+      orbitR: asteroid.r + 140 + (i%2)*16,
+      angle: (i/4)*Math.PI*2 + 0.6,
+      speed: 0.0005,
+      type:'foundry',
+    });
+  }
+}
+rebuildDrones();
+
+function spawnDebris(x,y){
+  for (let i=0;i<8;i++){
+    const a = Math.random()*Math.PI*2;
+    const s = Math.random()*3+1;
+    debris.push({
+      x, y,
+      vx: Math.cos(a)*s, vy: Math.sin(a)*s - 1.2,
+      life: 30+Math.random()*15, max:45,
+      r: Math.random()*2+1.5,
+      color: ['#fbbf24','#fde68a','#b45309'][i%3],
+    });
+  }
+}
+function updateDebris(dt){
+  for (let i=debris.length-1;i>=0;i--){
+    const d = debris[i];
+    d.x += d.vx; d.y += d.vy;
+    d.vy += 0.18;
+    d.life--;
+    if (d.life<=0) debris.splice(i,1);
+  }
+}
+
+// ============ TICK ============
+let lastTick = performance.now();
+function tick(){
+  const now = performance.now();
+  const dt = (now - lastTick) / 1000; // seconds
+  lastTick = now;
+
+  // drones produce scrap
+  state.scrap += droneRate() * dt;
+  state.lifetimeScrap += droneRate() * dt;
+
+  // frigates: scrap → alloy (uses 100 scrap per alloy at full rate)
+  let alloyGain = frigateRate() * dt;
+  const scrapNeed = alloyGain * 100;
+  if (state.scrap >= scrapNeed){
+    state.scrap -= scrapNeed;
+    state.alloy += alloyGain;
+  } else if (state.scrap > 0){
+    const possible = state.scrap / 100;
+    state.scrap = 0;
+    state.alloy += possible;
+  }
+
+  // foundries: alloy → plasma (50 alloy per plasma)
+  let plasmaGain = foundryRate() * dt;
+  const alloyNeed = plasmaGain * 50;
+  if (state.alloy >= alloyNeed){
+    state.alloy -= alloyNeed;
+    state.plasma += plasmaGain;
+  } else if (state.alloy > 0){
+    const possible = state.alloy / 50;
+    state.alloy = 0;
+    state.plasma += possible;
+  }
+
+  // auto-tapper module
+  if (state.modAuto > 0){
+    const taps = autoTapRate() * dt;
+    let amt = tapValue() * taps;
+    state.scrap += amt;
+    state.lifetimeScrap += amt;
+  }
+
+  // refresh HUD
+  refreshResources();
+  refreshWarpBtn();
+
+  // throttle save (every ~2s)
+  saveTick -= dt;
+  if (saveTick <= 0){
+    saveState();
+    saveTick = 2;
+  }
+}
+let saveTick = 2;
+
+// ============ RENDER ============
+function render(){
+  ctx.clearRect(0,0,viewW,viewH);
+  // stars
+  for (const s of stars){
+    s.t += 0.02;
+    const tw = 0.5 + 0.5*Math.sin(s.t);
+    ctx.globalAlpha = tw;
+    ctx.fillStyle = '#bae6fd';
+    ctx.fillRect(s.x, s.y, s.r, s.r);
+  }
+  ctx.globalAlpha = 1;
+  // nebula glow behind asteroid
+  const halo = ctx.createRadialGradient(asteroid.x, asteroid.y, asteroid.r*0.4, asteroid.x, asteroid.y, asteroid.r*3);
+  halo.addColorStop(0, 'rgba(34,211,238,0.15)');
+  halo.addColorStop(1, 'rgba(34,211,238,0)');
+  ctx.fillStyle = halo;
+  ctx.fillRect(0,0,viewW,viewH);
+
+  // asteroid
+  drawAsteroid();
+
+  // drones
+  for (const d of drones){
+    d.angle += d.speed * 16.67;
+    const x = asteroid.x + Math.cos(d.angle)*d.orbitR;
+    const y = asteroid.y + Math.sin(d.angle)*d.orbitR;
+    drawDrone(x, y, d);
+  }
+
+  // debris
+  for (const p of debris){
+    ctx.globalAlpha = p.life/p.max;
+    ctx.fillStyle = p.color;
+    ctx.beginPath();
+    ctx.arc(p.x, p.y, p.r, 0, Math.PI*2);
+    ctx.fill();
+  }
+  ctx.globalAlpha = 1;
+}
+
+function drawAsteroid(){
+  asteroid.rot += 0.002;
+  asteroid.shake *= 0.85;
+  const sx = asteroid.x + (Math.random()-0.5)*asteroid.shake*4;
+  const sy = asteroid.y + (Math.random()-0.5)*asteroid.shake*4;
+  ctx.save();
+  ctx.translate(sx, sy);
+  ctx.rotate(asteroid.rot);
+  // outer glow
+  const g = ctx.createRadialGradient(0,0,asteroid.r*0.4, 0,0, asteroid.r*1.05);
+  g.addColorStop(0, '#8a6a3e');
+  g.addColorStop(0.7, '#5a3a18');
+  g.addColorStop(1, '#1a0f08');
+  ctx.fillStyle = g;
+  // jagged outline
+  ctx.beginPath();
+  for (let i=0;i<22;i++){
+    const a = (i/22)*Math.PI*2;
+    const r = asteroid.r * (0.85 + Math.sin(a*3)*0.08 + Math.cos(a*7)*0.05);
+    if (i===0) ctx.moveTo(Math.cos(a)*r, Math.sin(a)*r);
+    else ctx.lineTo(Math.cos(a)*r, Math.sin(a)*r);
+  }
+  ctx.closePath();
+  ctx.fill();
+  // craters
+  ctx.fillStyle = '#3b1e0a';
+  for (const c of asteroid.craters){
+    const cx = Math.cos(c.a)*c.r;
+    const cy = Math.sin(c.a)*c.r;
+    ctx.beginPath();
+    ctx.arc(cx, cy, c.cr, 0, Math.PI*2);
+    ctx.fill();
+  }
+  // bright vein highlights
+  ctx.strokeStyle = 'rgba(251,191,36,0.4)';
+  ctx.lineWidth = 1.5;
+  ctx.beginPath();
+  ctx.moveTo(-asteroid.r*0.5, -asteroid.r*0.2);
+  ctx.lineTo(-asteroid.r*0.1, -asteroid.r*0.4);
+  ctx.lineTo(asteroid.r*0.2, -asteroid.r*0.1);
+  ctx.lineTo(asteroid.r*0.5, asteroid.r*0.2);
+  ctx.stroke();
+  ctx.restore();
+}
+
+function drawDrone(x, y, d){
+  const t = performance.now() * 0.001;
+  if (d.type === 'drone'){
+    ctx.save();
+    ctx.translate(x, y);
+    ctx.rotate(Math.atan2(y - asteroid.y, x - asteroid.x) + Math.PI);
+    ctx.fillStyle = '#22d3ee';
+    ctx.shadowColor = '#22d3ee';
+    ctx.shadowBlur = 8;
+    ctx.fillRect(-6, -3, 12, 6);
+    ctx.fillStyle = '#0a1424';
+    ctx.fillRect(-2, -1.5, 5, 3);
+    ctx.fillStyle = '#fde047';
+    ctx.fillRect(-8, -1, 2, 2);
+    ctx.shadowBlur = 0;
+    ctx.restore();
+  } else if (d.type === 'frigate'){
+    ctx.save();
+    ctx.translate(x, y);
+    ctx.rotate(Math.atan2(y - asteroid.y, x - asteroid.x) + Math.PI);
+    ctx.fillStyle = '#a78bfa';
+    ctx.shadowColor = '#a78bfa';
+    ctx.shadowBlur = 10;
+    // body
+    ctx.beginPath();
+    ctx.moveTo(10, 0); ctx.lineTo(-8, -5); ctx.lineTo(-8, 5); ctx.closePath();
+    ctx.fill();
+    ctx.fillStyle = '#fde047';
+    ctx.fillRect(-4, -1, 4, 2);
+    ctx.shadowBlur = 0;
+    ctx.restore();
+  } else if (d.type === 'foundry'){
+    ctx.save();
+    ctx.translate(x, y);
+    ctx.rotate(Math.atan2(y - asteroid.y, x - asteroid.x) + Math.PI);
+    ctx.fillStyle = '#fde047';
+    ctx.shadowColor = '#fde047';
+    ctx.shadowBlur = 14;
+    ctx.beginPath();
+    ctx.arc(0, 0, 7, 0, Math.PI*2);
+    ctx.fill();
+    ctx.fillStyle = '#0a1424';
+    ctx.fillRect(-4, -1.5, 8, 3);
+    ctx.shadowBlur = 0;
+    ctx.restore();
+  }
+}
+
+// ============ HUD ============
+function refreshResources(){
+  document.getElementById('scrap-val').textContent = formatN(state.scrap);
+  document.getElementById('alloy-val').textContent = formatN(state.alloy);
+  document.getElementById('plasma-val').textContent = formatN(state.plasma);
+  document.getElementById('warp-val').textContent = state.warps;
+  document.getElementById('warp-mul').textContent = `×${globalMul().toFixed(2)}`;
+  document.getElementById('scrap-rate').textContent = `+${formatN(droneRate())}/s`;
+  document.getElementById('alloy-rate').textContent = `+${formatN(frigateRate())}/s`;
+  document.getElementById('plasma-rate').textContent = `+${formatN(foundryRate())}/s`;
+}
+
+function formatN(n){
+  if (n < 1) return n.toFixed(2);
+  if (n < 1000) return n.toFixed(0);
+  if (n < 1e6) return (n/1e3).toFixed(2)+'K';
+  if (n < 1e9) return (n/1e6).toFixed(2)+'M';
+  if (n < 1e12) return (n/1e9).toFixed(2)+'B';
+  return (n/1e12).toFixed(2)+'T';
+}
+
+// ============ RAIL ============
+let activeTab = 'upgrades';
+document.querySelectorAll('.rail-tab').forEach(b=>{
+  b.addEventListener('click', ()=>{
+    document.querySelectorAll('.rail-tab').forEach(x=>x.classList.remove('active'));
+    b.classList.add('active');
+    activeTab = b.dataset.tab;
+    renderRail();
+  });
+});
+
+function renderRail(){
+  const wrap = document.getElementById('rail-content');
+  wrap.innerHTML = '';
+  const defs = activeTab==='upgrades' ? UPGRADES : MODULES;
+  for (const key in defs){
+    const def = defs[key];
+    const lvl = state[key];
+    const cost = getCost(key);
+    const costRes = def.costRes || 'scrap';
+    const can = (state[costRes]||0) >= cost && lvl < def.max;
+    const card = document.createElement('div');
+    card.className = 'upgrade-card' + (can?'':' disabled');
+    card.innerHTML = `
+      <div class="glyph ${def.cls}">${def.glyph}</div>
+      <div class="body">
+        <div class="name">${def.name}</div>
+        <div class="desc">${def.desc(lvl)}</div>
+      </div>
+      <div class="meta">
+        <div class="lv">LV ${lvl}${lvl>=def.max?' MAX':''}</div>
+        <div class="cost">${lvl>=def.max?'—':`${formatN(cost)} ${costRes[0].toUpperCase()}`}</div>
+      </div>
+    `;
+    if (can){
+      card.addEventListener('click', ()=>{
+        state[costRes] -= cost;
+        state[key]++;
+        sfx.buy();
+        rebuildDrones();
+        renderRail();
+        refreshResources();
+        saveState();
+      });
+    }
+    wrap.appendChild(card);
+  }
+}
+
+// ============ WARP ============
+const WARP_THRESHOLD = 10000;
+function refreshWarpBtn(){
+  const ready = state.lifetimeScrap >= WARP_THRESHOLD;
+  const btn = document.getElementById('warp-btn');
+  btn.disabled = !ready;
+  document.getElementById('warp-thresh').textContent = formatN(WARP_THRESHOLD);
+  if (ready){
+    const bonus = 5 + state.modBlessing*5;
+    document.getElementById('warp-info').innerHTML =
+      `Engage warp for permanent <strong>+${bonus}%</strong> multiplier and a Warp Charge.<br>Resets all upgrades + resources.`;
+  } else {
+    document.getElementById('warp-info').innerHTML =
+      `Lifetime scrap <strong>${formatN(state.lifetimeScrap)} / ${formatN(WARP_THRESHOLD)}</strong> to engage.<br>Each warp grants permanent ×1.05+ multiplier.`;
+  }
+}
+
+function warpDrive(){
+  if (state.lifetimeScrap < WARP_THRESHOLD) return;
+  // grant
+  const blessing = blessingMul();
+  state.warps++;
+  state.warpMul *= (1.05 + blessing);
+  // preserve modules; reset rest
+  const keep = {
+    warps:state.warps, warpMul:state.warpMul,
+    modCrit:state.modCrit, modAuto:state.modAuto, modSpark:state.modSpark, modBlessing:state.modBlessing,
+  };
+  state = {...DEFAULT_STATE, ...keep};
+  rebuildDrones();
+  saveState();
+  renderRail();
+  refreshResources();
+  refreshWarpBtn();
+  sfx.warp();
+  showToast(`WARP ENGAGED — ×${state.warpMul.toFixed(2)} PERMANENT`);
+  document.getElementById('home-warps').textContent = state.warps;
+}
+
+// ============ MENUS ============
+function startGame(){
+  document.getElementById('home-screen').classList.add('hidden');
+}
+function returnHome(){
+  document.getElementById('home-screen').classList.remove('hidden');
+}
+function toggleHelp(){
+  document.getElementById('help-screen').classList.toggle('hidden');
+}
+
+// ============ TOAST ============
+let toastTimer=null;
+function showToast(msg){
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.classList.add('show');
+  if (toastTimer) clearTimeout(toastTimer);
+  toastTimer = setTimeout(()=>el.classList.remove('show'), 2200);
+}
+
+// ============ INIT ============
+document.getElementById('home-warps').textContent = state.warps;
+renderRail();
+refreshResources();
+refreshWarpBtn();
+
+// resize re-init
+window.addEventListener('resize', ()=>{
+  initAsteroid();
+  initStars();
+});
+
+let lastFrame = performance.now();
+function loop(ts){
+  // tick game state (throttled to ~10fps for accumulators)
+  tick();
+  // render
+  updateDebris(ts - lastFrame);
+  lastFrame = ts;
+  render();
+  requestAnimationFrame(loop);
+}
+requestAnimationFrame(loop);
+
+// =======================================================
+// KLEVER WALLET
+// =======================================================
+let walletAddr=null, walletProvider=null;
+async function connectWallet(){
+  const pill = document.getElementById('wallet-pill');
+  const txt  = document.getElementById('wallet-text');
+  if (walletAddr){
+    walletAddr=null; walletProvider=null;
+    pill.classList.remove('connected');
+    txt.textContent='CONNECT KLEVER';
+    showToast('WALLET DISCONNECTED');
+    return;
+  }
+  txt.textContent='CONNECTING…';
+  try{
+    let address=null;
+    if (window.klever && typeof window.klever.request==='function'){
+      const res = await window.klever.request({method:'klv_requestAccounts'});
+      address = Array.isArray(res)?res[0]:(res?.address||res?.accounts?.[0]);
+      walletProvider='extension';
+    } else if (window.kleverWeb){
+      try{ if (typeof window.kleverWeb.initialize==='function') await window.kleverWeb.initialize(); }catch(e){}
+      address = window.kleverWeb.getWalletAddress?.() || window.kleverWeb.address;
+      walletProvider='k5';
+    } else throw new Error('no provider');
+    if (!address) throw new Error('no address');
+    walletAddr = address;
+    pill.classList.add('connected');
+    txt.textContent = address.slice(0,6)+'…'+address.slice(-4);
+    showToast('WALLET CONNECTED');
+  } catch(e){
+    txt.textContent='CONNECT KLEVER';
+    showToast('CONNECT FAILED');
+  }
+}
+</script>
+</body>
+</html>

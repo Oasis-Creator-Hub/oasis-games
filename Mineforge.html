@@ -1,0 +1,1168 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+<title>Mineforge | Oasis</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@600;800&family=Rajdhani:wght@500;600;700&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg-deep:#0a0a14;
+    --bg-mid:#181420;
+    --panel:#241a30;
+    --gold:#f59e0b;
+    --gold-l:#fbbf24;
+    --copper:#d97706;
+    --steel:#94a3b8;
+    --pearl:#e2e8f0;
+    --good:#22c55e;
+    --bad:#ef4444;
+    --ore-iron:#94a3b8;
+    --ore-gold:#fbbf24;
+    --ore-ruby:#ef4444;
+    --line:rgba(245,158,11,0.22);
+  }
+  *{margin:0;padding:0;box-sizing:border-box;}
+  html,body{height:100%;overflow:hidden;}
+  body{
+    background:radial-gradient(circle at 50% 0%,rgba(245,158,11,0.10),transparent 60%),linear-gradient(180deg,#0a0a14 0%,#181420 100%);
+    color:var(--pearl);font-family:'Rajdhani',sans-serif;
+    height:100vh;display:flex;flex-direction:column;
+    user-select:none;-webkit-tap-highlight-color:transparent;
+  }
+  /* HEADER */
+  header{display:flex;justify-content:space-between;align-items:center;padding:8px 16px;background:rgba(24,20,32,0.85);border-bottom:1px solid var(--line);position:relative;z-index:10;}
+  .left,.right{display:flex;align-items:center;gap:10px;}
+  .oasis-link{display:flex;align-items:center;gap:6px;text-decoration:none;padding:4px 10px;border-radius:6px;background:linear-gradient(135deg,rgba(124,58,237,0.18),rgba(245,158,11,0.14));border:1px solid rgba(124,58,237,0.40);transition:all 0.18s;}
+  .oasis-link:hover{filter:brightness(1.2);}
+  .oasis-mark{width:14px;height:14px;border-radius:3px;background:linear-gradient(135deg,#7c3aed,#f59e0b);}
+  .oasis-text{font-family:'Cinzel',serif;font-size:0.7rem;font-weight:800;letter-spacing:0.16em;color:#fff;}
+  .divider{width:1px;height:18px;background:var(--line);}
+  .game-title{font-family:'Cinzel',serif;font-size:1.05rem;font-weight:800;letter-spacing:0.16em;color:var(--pearl);text-shadow:0 0 12px rgba(245,158,11,0.5);}
+  .game-title .accent{color:var(--gold);}
+  .version-badge{font-family:'JetBrains Mono',monospace;font-size:0.65rem;font-weight:700;background:rgba(245,158,11,0.16);border:1px solid rgba(245,158,11,0.40);color:var(--gold);padding:2px 8px;border-radius:4px;letter-spacing:0.08em;}
+  .wallet-pill{display:flex;align-items:center;gap:6px;padding:5px 11px;border-radius:6px;background:rgba(124,58,237,0.18);border:1px solid rgba(124,58,237,0.45);color:#cbd5e1;font-size:0.72rem;font-weight:600;cursor:pointer;font-family:'JetBrains Mono',monospace;letter-spacing:0.04em;}
+  .wallet-pill .dot{width:6px;height:6px;border-radius:50%;background:#475569;}
+  .wallet-pill.connected .dot{background:var(--good);box-shadow:0 0 8px var(--good);}
+  .wallet-pill.connected{border-color:rgba(34,197,94,0.5);}
+  .help-btn{width:26px;height:26px;border-radius:6px;background:rgba(34,211,238,0.10);border:1px solid rgba(34,211,238,0.35);color:#22d3ee;font-weight:700;cursor:pointer;font-family:'JetBrains Mono',monospace;display:flex;align-items:center;justify-content:center;}
+
+  /* layout */
+  #game-container{flex:1;position:relative;overflow:hidden;display:flex;flex-direction:column;}
+  #stats-bar{
+    display:flex;justify-content:space-between;align-items:center;
+    padding:10px 16px;background:rgba(24,20,32,0.78);
+    border-bottom:1px solid var(--line);
+    font-family:'JetBrains Mono',monospace;
+  }
+  .stat{display:flex;align-items:center;gap:6px;font-size:0.78rem;}
+  .stat .label{color:var(--steel);font-size:0.62rem;letter-spacing:0.16em;text-transform:uppercase;}
+  .stat .val{color:var(--pearl);font-weight:700;}
+  .stat .val.gold{color:var(--gold);}
+  .stat .val.danger{color:var(--bad);}
+  .stat .val.good{color:var(--good);}
+
+  .stats-mid{display:flex;gap:16px;align-items:center;}
+  .stats-actions{display:flex;gap:8px;}
+  .action-btn{
+    background:rgba(245,158,11,0.16);border:1px solid var(--line);color:var(--gold);
+    padding:6px 12px;border-radius:5px;font-family:'Cinzel',serif;font-size:0.72rem;
+    font-weight:700;letter-spacing:0.10em;cursor:pointer;transition:all 0.16s;
+  }
+  .action-btn:hover{background:rgba(245,158,11,0.28);}
+  .action-btn.danger{color:var(--bad);border-color:rgba(239,68,68,0.35);background:rgba(239,68,68,0.10);}
+  .action-btn.danger:hover{background:rgba(239,68,68,0.20);}
+
+  #board-wrap{flex:1;position:relative;display:flex;align-items:center;justify-content:center;overflow:hidden;}
+  #gameCanvas{display:block;cursor:pointer;}
+
+  /* level selector + mobile arrows */
+  #level-list{
+    position:absolute;left:14px;top:14px;
+    display:flex;flex-direction:column;gap:5px;
+    background:rgba(24,20,32,0.85);border:1px solid var(--line);
+    border-radius:6px;padding:8px;backdrop-filter:blur(6px);
+    max-height:80vh;overflow-y:auto;
+  }
+  #level-list h4{
+    font-family:'Cinzel',serif;font-size:0.7rem;font-weight:700;
+    color:var(--gold);letter-spacing:0.16em;text-align:center;margin-bottom:4px;
+  }
+  .lvl-btn{
+    width:36px;height:36px;border-radius:5px;
+    background:rgba(36,26,48,0.6);border:1px solid var(--line);
+    color:var(--steel);font-family:'JetBrains Mono',monospace;
+    font-size:0.78rem;font-weight:700;cursor:pointer;
+    transition:all 0.16s;
+  }
+  .lvl-btn:hover{border-color:var(--gold);}
+  .lvl-btn.active{border-color:var(--gold);color:var(--gold);box-shadow:0 0 10px rgba(245,158,11,0.4);}
+  .lvl-btn.complete{background:rgba(34,197,94,0.10);border-color:rgba(34,197,94,0.4);color:var(--good);}
+  .lvl-btn.locked{opacity:0.4;cursor:not-allowed;}
+
+  /* mobile arrows */
+  #mobile-controls{
+    display:none;position:absolute;right:14px;bottom:14px;
+    pointer-events:none;
+  }
+  .arrow-pad{
+    display:grid;grid-template-columns:60px 60px 60px;grid-template-rows:60px 60px 60px;
+    gap:4px;
+  }
+  .arrow{
+    pointer-events:auto;
+    background:rgba(24,20,32,0.7);
+    border:1.5px solid var(--line);
+    border-radius:8px;color:var(--gold);
+    font-family:'JetBrains Mono',monospace;font-size:1.1rem;font-weight:700;
+    display:flex;align-items:center;justify-content:center;
+  }
+  .arrow:active{background:rgba(245,158,11,0.18);}
+  .arrow.up   {grid-column:2;grid-row:1;}
+  .arrow.left {grid-column:1;grid-row:2;}
+  .arrow.right{grid-column:3;grid-row:2;}
+  .arrow.down {grid-column:2;grid-row:3;}
+  @media (pointer:coarse){#mobile-controls{display:block;}}
+
+  /* MENUS */
+  .menu{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;background:rgba(10,10,20,0.86);backdrop-filter:blur(10px);z-index:30;}
+  .menu.hidden{display:none;}
+  .menu .panel{background:linear-gradient(160deg,rgba(36,26,48,0.96),rgba(24,20,32,0.96));border:1px solid var(--line);border-top:2px solid var(--gold);border-radius:8px;padding:28px 36px;max-width:520px;width:90%;text-align:center;box-shadow:0 14px 60px rgba(245,158,11,0.20);}
+  .menu h1{font-family:'Cinzel',serif;font-size:2.4rem;letter-spacing:0.10em;color:var(--pearl);text-shadow:0 0 14px rgba(245,158,11,0.5);margin-bottom:6px;font-weight:800;}
+  .menu h1 .accent{color:var(--gold);}
+  .menu h2{font-family:'Cinzel',serif;font-size:1.4rem;letter-spacing:0.16em;color:var(--gold);margin-bottom:10px;font-weight:800;}
+  .menu p{font-size:1rem;line-height:1.5;color:#cbd5e1;margin-bottom:6px;}
+  .menu .row{display:flex;gap:12px;flex-wrap:wrap;justify-content:center;margin-top:14px;}
+  button.mine-btn{background:linear-gradient(135deg,var(--gold),#b45309);color:#0a0a14;border:none;border-radius:6px;padding:10px 24px;font-family:'Cinzel',serif;font-size:0.85rem;font-weight:800;letter-spacing:0.18em;cursor:pointer;box-shadow:0 6px 18px rgba(245,158,11,0.40);transition:all 0.18s;}
+  button.mine-btn:hover{filter:brightness(1.18);transform:translateY(-1px);}
+  button.mine-btn.alt{background:linear-gradient(135deg,#7c3aed,#4a1a8a);color:#fff;box-shadow:0 6px 18px rgba(124,58,237,0.40);}
+  button.mine-btn.ghost{background:transparent;border:1px solid var(--line);color:#cbd5e1;box-shadow:none;}
+
+  .summary-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:14px 0;text-align:left;}
+  .summary-grid .cell{background:rgba(24,20,32,0.85);border:1px solid var(--line);border-radius:5px;padding:8px 12px;font-family:'JetBrains Mono',monospace;font-size:0.78rem;display:flex;justify-content:space-between;}
+  .summary-grid .cell span{color:var(--steel);}
+  .summary-grid .cell b{color:var(--pearl);}
+  .summary-grid .cell.gold{border-color:var(--gold);}
+  .summary-grid .cell.gold b{color:var(--gold);}
+
+  /* toast */
+  #toast{position:absolute;top:80px;left:50%;transform:translateX(-50%);background:rgba(24,20,32,0.95);border:1px solid var(--gold);padding:8px 18px;border-radius:5px;font-family:'Cinzel',serif;font-size:0.85rem;letter-spacing:0.16em;color:var(--gold);text-shadow:0 0 8px var(--gold);opacity:0;transition:opacity 0.3s;pointer-events:none;z-index:30;}
+  #toast.show{opacity:1;}
+
+  @media (max-width:560px){
+    .game-title{font-size:0.85rem;letter-spacing:0.10em;}
+    .menu .panel{padding:20px 18px;}
+    .menu h1{font-size:1.7rem;}
+    .stat{font-size:0.7rem;}
+    .stat .label{font-size:0.55rem;}
+    #level-list{padding:5px;}
+    .lvl-btn{width:30px;height:30px;font-size:0.7rem;}
+  }
+</style>
+</head>
+<body>
+<header>
+  <div class="left">
+    <a class="oasis-link" href="https://oasis-hub.pages.dev" target="_top" title="Back to Oasis Hub">
+      <span class="oasis-mark"></span><span class="oasis-text">OASIS</span>
+    </a>
+    <span class="divider"></span>
+    <span class="game-title">MINE<span class="accent">FORGE</span></span>
+    <span class="version-badge">v1.0</span>
+  </div>
+  <div class="right">
+    <button id="wallet-pill" class="wallet-pill" onclick="connectWallet()">
+      <span class="dot"></span><span id="wallet-text">CONNECT KLEVER</span>
+    </button>
+    <button class="help-btn" onclick="toggleHelp()">?</button>
+  </div>
+</header>
+
+<div id="game-container">
+  <div id="stats-bar">
+    <div class="stats-mid">
+      <div class="stat"><span class="label">LEVEL</span><span class="val gold" id="lvl-num">1</span></div>
+      <div class="stat"><span class="label">MOVES</span><span class="val" id="moves-val">0</span></div>
+      <div class="stat"><span class="label">PAR</span><span class="val" id="par-val">—</span></div>
+      <div class="stat"><span class="label">ORE LEFT</span><span class="val gold" id="ore-val">0</span></div>
+    </div>
+    <div class="stats-actions">
+      <button class="action-btn" onclick="undoMove()">UNDO</button>
+      <button class="action-btn danger" onclick="resetLevel()">RESET</button>
+    </div>
+  </div>
+
+  <div id="board-wrap">
+    <canvas id="gameCanvas"></canvas>
+    <div id="level-list"></div>
+    <div id="mobile-controls">
+      <div class="arrow-pad">
+        <div class="arrow up" data-dir="up">↑</div>
+        <div class="arrow left" data-dir="left">←</div>
+        <div class="arrow right" data-dir="right">→</div>
+        <div class="arrow down" data-dir="down">↓</div>
+      </div>
+    </div>
+    <div id="toast"></div>
+  </div>
+
+  <!-- HOME -->
+  <div id="home-screen" class="menu">
+    <div class="panel">
+      <h1>MINE<span class="accent">FORGE</span></h1>
+      <p style="color:var(--gold);letter-spacing:0.16em;font-family:'Cinzel',serif;font-size:0.78rem;margin-bottom:10px;">PUSH ORE · DETONATE · DELIVER</p>
+      <p>Push <strong>ore blocks</strong> onto <strong>refinery pads</strong>. Some levels have <strong>charges</strong> — step on a fuse tile to detonate adjacent rocks. Beat 12 puzzles.</p>
+      <div class="row">
+        <button class="mine-btn" onclick="startGame()">DESCEND</button>
+        <button class="mine-btn ghost" onclick="toggleHelp()">CONTROLS</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- WIN -->
+  <div id="win-screen" class="menu hidden">
+    <div class="panel">
+      <h2 id="win-title">LEVEL COMPLETE</h2>
+      <p id="win-sub">Refinery satisfied.</p>
+      <div id="win-summary" class="summary-grid"></div>
+      <div class="row">
+        <button class="mine-btn" id="win-next" onclick="advanceLevel()">NEXT LEVEL ▶</button>
+        <button class="mine-btn ghost" onclick="returnHome()">HOME</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- HELP -->
+  <div id="help-screen" class="menu hidden">
+    <div class="panel" style="text-align:left;">
+      <h2 style="text-align:center;">CONTROLS</h2>
+      <p style="font-family:'JetBrains Mono',monospace;font-size:0.85rem;line-height:1.7;">
+        <strong style="color:var(--gold);">WASD / Arrows</strong> — move<br>
+        <strong style="color:var(--gold);">U / Z</strong> — undo<br>
+        <strong style="color:var(--gold);">R</strong> — reset level<br>
+        <strong>ESC</strong> — exit · <strong>H</strong> — help
+      </p>
+      <p style="margin-top:10px;color:#cbd5e1;font-size:0.85rem;line-height:1.5;">
+        <strong style="color:var(--ore-iron);">Iron ore</strong> goes on iron pads. <strong style="color:var(--ore-gold);">Gold ore</strong> on gold. <strong style="color:var(--ore-ruby);">Ruby ore</strong> on ruby. Match types or no win.
+      </p>
+      <p style="color:#cbd5e1;font-size:0.85rem;line-height:1.5;">
+        <strong style="color:var(--bad);">Charges</strong> are red dot tiles. Step on one and it detonates — destroying any adjacent rock walls (but NOT ore blocks).
+      </p>
+      <div class="row" style="justify-content:center;">
+        <button class="mine-btn ghost" onclick="toggleHelp()">CLOSE</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+// ==========================================================
+// MINEFORGE — sokoban-style mining puzzle
+// ==========================================================
+
+const canvas = document.getElementById('gameCanvas');
+const ctx    = canvas.getContext('2d');
+const boardWrap = document.getElementById('board-wrap');
+
+// tile glyphs in level data:
+// '.' = floor
+// '#' = rock wall (impassable, can be detonated by charge)
+// 'W' = stone wall (impassable, indestructible)
+// '@' = player start
+// 'i' = iron ore  (block)
+// 'g' = gold ore  (block)
+// 'r' = ruby ore  (block)
+// 'I' = iron pad  (refinery)
+// 'G' = gold pad
+// 'R' = ruby pad
+// '*' = charge (fuse)
+// '!' = ore on its matching pad (rendered specially) — auto-derived
+
+const LEVELS = [
+  // Level 1: tutorial — 1 iron, 1 pad
+  {
+    name:'PIT',
+    par:8,
+    map:[
+      'WWWWWWWW',
+      'W......W',
+      'W..@...W',
+      'W..i...W',
+      'W..I...W',
+      'W......W',
+      'WWWWWWWW',
+    ],
+  },
+  // Level 2: two iron blocks, simple navigation
+  {
+    name:'CROSSCUT',
+    par:14,
+    map:[
+      'WWWWWWWWW',
+      'W.......W',
+      'W.@.....W',
+      'W.i...I.W',
+      'W.......W',
+      'W.i...I.W',
+      'W.......W',
+      'WWWWWWWWW',
+    ],
+  },
+  // Level 3: gold + iron mixed
+  {
+    name:'TWIN VEIN',
+    par:16,
+    map:[
+      'WWWWWWWWW',
+      'W.....I.W',
+      'W.@.i...W',
+      'W...g...W',
+      'W.....G.W',
+      'W.......W',
+      'WWWWWWWWW',
+    ],
+  },
+  // Level 4: rocks introduce
+  {
+    name:'CAVE-IN',
+    par:18,
+    map:[
+      'WWWWWWWWWW',
+      'W........W',
+      'W.@..#...W',
+      'W.i..#.I.W',
+      'W....#...W',
+      'W........W',
+      'WWWWWWWWWW',
+    ],
+  },
+  // Level 5: charge tutorial
+  {
+    name:'FUSE PIT',
+    par:18,
+    map:[
+      'WWWWWWWWWW',
+      'W........W',
+      'W.@.*##..W',
+      'W..i.##I.W',
+      'W....##..W',
+      'W........W',
+      'WWWWWWWWWW',
+    ],
+  },
+  // Level 6: ruby + corridor
+  {
+    name:'RUBY SHAFT',
+    par:22,
+    map:[
+      'WWWWWWWWWWW',
+      'W.........W',
+      'W.@.r..R..W',
+      'W.........W',
+      'W.W.W.W.W.W',
+      'W.........W',
+      'W.r....R..W',
+      'WWWWWWWWWWW',
+    ],
+  },
+  // Level 7: tight corner with gold + iron
+  {
+    name:'PLATING',
+    par:26,
+    map:[
+      'WWWWWWWWWW',
+      'W..G.G...W',
+      'W.@.g.g..W',
+      'W........W',
+      'W..i.i...W',
+      'W..I.I...W',
+      'WWWWWWWWWW',
+    ],
+  },
+  // Level 8: charges + walls
+  {
+    name:'BLAST DOOR',
+    par:24,
+    map:[
+      'WWWWWWWWWW',
+      'W........W',
+      'W.@.*..i.W',
+      'W..####..W',
+      'W..####..W',
+      'W.....I..W',
+      'W........W',
+      'WWWWWWWWWW',
+    ],
+  },
+  // Level 9: mixed with multi charges
+  {
+    name:'TRIO HAUL',
+    par:32,
+    map:[
+      'WWWWWWWWWWW',
+      'W.........W',
+      'W.@.*.....W',
+      'W.i.#.I...W',
+      'W.g.#.G...W',
+      'W.r.#.R...W',
+      'W.........W',
+      'WWWWWWWWWWW',
+    ],
+  },
+  // Level 10: switch routing
+  {
+    name:'SWITCHBACK',
+    par:36,
+    map:[
+      'WWWWWWWWWWWW',
+      'W..........W',
+      'W.@..g.....W',
+      'W..#.W.#..GW',
+      'W..#.W.#...W',
+      'W..#.W.#...W',
+      'W..i.W.r..IW',
+      'W....W....RW',
+      'WWWWWWWWWWWW',
+    ],
+  },
+  // Level 11: large with multiple of each
+  {
+    name:'DEEP HAUL',
+    par:40,
+    map:[
+      'WWWWWWWWWWWW',
+      'W..........W',
+      'W.@.i...I..W',
+      'W..g.W.G...W',
+      'W..r...R...W',
+      'W..i.W.I...W',
+      'W..g...G...W',
+      'W..........W',
+      'WWWWWWWWWWWW',
+    ],
+  },
+  // Level 12: capstone
+  {
+    name:'GREAT FORGE',
+    par:48,
+    map:[
+      'WWWWWWWWWWWWW',
+      'W...........W',
+      'W.@..*..####W',
+      'W.i.g.r.....W',
+      'W..########.W',
+      'W.I.G.R.....W',
+      'W.....*.....W',
+      'W..#####....W',
+      'W.r..g..i.RGI', // border breaks — fix below
+      'WWWWWWWWWWWWW',
+    ],
+  },
+];
+// Sanity: replace the broken last row of level 12 with a clean one
+LEVELS[11].map = [
+  'WWWWWWWWWWWWW',
+  'W...........W',
+  'W.@..*......W',
+  'W.i.g.r.....W',
+  'W..####.....W',
+  'W.I.G.R.....W',
+  'W...*.......W',
+  'W.#####.....W',
+  'W.r.g.i.....W',
+  'W.R.G.I.....W',
+  'WWWWWWWWWWWWW',
+];
+
+// state
+const SAVE_KEY = 'mineforge:save';
+const saved = (()=>{ try{return JSON.parse(localStorage.getItem(SAVE_KEY))||{};}catch(e){return{};} })();
+const meta = {
+  completed: saved.completed || {},   // { levelIdx: bestMoves }
+  current: saved.current || 0,
+};
+function saveMeta(){ localStorage.setItem(SAVE_KEY, JSON.stringify(meta)); }
+
+const game = {
+  active:false,
+  levelIdx: 0,
+  cells: [],   // 2D
+  cols:0, rows:0,
+  pX:0, pY:0,
+  pFacing:'down',
+  moves:0,
+  history:[],   // for undo
+  par:0, name:'',
+  charges: 0,
+};
+
+let TILE = 56;
+function fitTile(){
+  const wrap = boardWrap.getBoundingClientRect();
+  const margin = 32;
+  const maxW = wrap.width - margin*2 - (window.innerWidth>760?180:32);
+  const maxH = wrap.height - margin*2;
+  TILE = Math.floor(Math.min(maxW/game.cols, maxH/game.rows, 64));
+  TILE = Math.max(28, TILE);
+  canvas.width = game.cols * TILE;
+  canvas.height = game.rows * TILE;
+}
+window.addEventListener('resize', ()=>{ if (game.active) fitTile(); });
+
+// audio
+const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+function tone({freq=440,type='sine',dur=0.08,gain=0.14,slide=null}={}){
+  if (audioCtx.state==='suspended') audioCtx.resume();
+  const o=audioCtx.createOscillator(),g=audioCtx.createGain();
+  o.connect(g); g.connect(audioCtx.destination);
+  o.type=type; o.frequency.setValueAtTime(freq,audioCtx.currentTime);
+  if (slide!==null) o.frequency.exponentialRampToValueAtTime(slide,audioCtx.currentTime+dur);
+  g.gain.setValueAtTime(gain,audioCtx.currentTime);
+  g.gain.exponentialRampToValueAtTime(0.001,audioCtx.currentTime+dur);
+  o.start(); o.stop(audioCtx.currentTime+dur);
+}
+const sfx = {
+  step:    ()=>tone({freq:140,type:'sine',dur:0.04,gain:0.06}),
+  push:    ()=>tone({freq:300,type:'square',dur:0.08,gain:0.12,slide:200}),
+  land:    ()=>{tone({freq:660,type:'sine',dur:0.10,gain:0.18});setTimeout(()=>tone({freq:990,type:'sine',dur:0.12,gain:0.18}),100);},
+  blast:   ()=>{tone({freq:200,type:'sawtooth',dur:0.20,gain:0.30,slide:60});setTimeout(()=>tone({freq:80,type:'sine',dur:0.30,gain:0.20}),100);},
+  win:     ()=>{[0,150,300].forEach((t,i)=>setTimeout(()=>tone({freq:660+i*220,type:'sine',dur:0.20,gain:0.22}),t));},
+  bump:    ()=>tone({freq:120,type:'sawtooth',dur:0.06,gain:0.14}),
+  undo:    ()=>tone({freq:440,type:'sine',dur:0.08,gain:0.10,slide:220}),
+};
+
+// load level
+function loadLevel(idx){
+  const lvl = LEVELS[idx];
+  game.levelIdx = idx;
+  game.par = lvl.par;
+  game.name = lvl.name;
+  game.cells = [];
+  game.cols = lvl.map[0].length;
+  game.rows = lvl.map.length;
+  for (let r=0;r<game.rows;r++){
+    const row = [];
+    for (let c=0;c<game.cols;c++){
+      const ch = lvl.map[r][c];
+      let tile = '.';      // background
+      let entity = null;   // ore block / charge
+      if (ch === 'W') tile = 'W';
+      else if (ch === '#') tile = '#';
+      else if (ch === 'I' || ch === 'G' || ch === 'R') tile = ch;
+      else if (ch === '*') tile = '*';   // charge — consumed when stepped on
+      else if (ch === '@'){ tile='.'; game.pX = c; game.pY = r; }
+      else if (ch === 'i'||ch==='g'||ch==='r'){ tile='.'; entity = ch; }
+      row.push({ tile, entity });
+    }
+    game.cells.push(row);
+  }
+  game.moves = 0;
+  game.history.length = 0;
+  game.pFacing = 'down';
+  game.charges = countCharges();
+  game.active = true;
+  fitTile();
+  refreshHud();
+  refreshLevelList();
+  showToast(`${lvl.name.toUpperCase()}`);
+}
+
+function countCharges(){
+  let n=0;
+  for (let r=0;r<game.rows;r++){
+    for (let c=0;c<game.cols;c++){
+      if (game.cells[r][c].tile === '*') n++;
+    }
+  }
+  return n;
+}
+
+// movement
+const DIRS = {
+  up:    { dx:0, dy:-1 },
+  down:  { dx:0, dy:1 },
+  left:  { dx:-1, dy:0 },
+  right: { dx:1, dy:0 },
+};
+function tileAt(c,r){
+  if (c<0||r<0||c>=game.cols||r>=game.rows) return null;
+  return game.cells[r][c];
+}
+function isWalkable(t){
+  if (!t) return false;
+  return t.tile !== 'W' && t.tile !== '#' && t.entity == null;
+}
+function movePlayer(dir){
+  if (!game.active) return;
+  const d = DIRS[dir];
+  if (!d) return;
+  game.pFacing = dir;
+  const nx = game.pX + d.dx;
+  const ny = game.pY + d.dy;
+  const target = tileAt(nx, ny);
+  if (!target){ sfx.bump(); return; }
+  if (target.tile === 'W' || target.tile === '#'){ sfx.bump(); return; }
+
+  const snapshot = makeSnapshot();
+
+  if (target.entity){
+    // try push
+    const beyondX = nx + d.dx;
+    const beyondY = ny + d.dy;
+    const beyond = tileAt(beyondX, beyondY);
+    if (!beyond){ sfx.bump(); return; }
+    if (beyond.tile === 'W' || beyond.tile === '#' || beyond.entity){
+      sfx.bump();
+      return;
+    }
+    // push the ore
+    beyond.entity = target.entity;
+    target.entity = null;
+    sfx.push();
+    // landing on matching pad?
+    if ((beyond.tile === 'I' && beyond.entity === 'i') ||
+        (beyond.tile === 'G' && beyond.entity === 'g') ||
+        (beyond.tile === 'R' && beyond.entity === 'r')){
+      sfx.land();
+      spawnLand(beyondX, beyondY);
+    }
+  } else {
+    sfx.step();
+  }
+  // move player
+  game.pX = nx; game.pY = ny;
+
+  // if landed on charge, detonate
+  if (target.tile === '*'){
+    detonate(nx, ny);
+  }
+
+  pushHistory(snapshot);
+  game.moves++;
+  refreshHud();
+  // check win
+  if (isWin()){
+    onLevelWin();
+  }
+}
+
+function pushHistory(snap){
+  game.history.push(snap);
+  if (game.history.length > 200) game.history.shift();
+}
+function makeSnapshot(){
+  // shallow per-cell { tile, entity }
+  const cells = [];
+  for (let r=0;r<game.rows;r++){
+    const row = [];
+    for (let c=0;c<game.cols;c++){
+      const t = game.cells[r][c];
+      row.push({tile:t.tile, entity:t.entity});
+    }
+    cells.push(row);
+  }
+  return { cells, pX:game.pX, pY:game.pY, moves:game.moves };
+}
+function undoMove(){
+  if (!game.history.length) return;
+  const s = game.history.pop();
+  game.cells = s.cells;
+  game.pX = s.pX; game.pY = s.pY;
+  game.moves = s.moves;
+  game.charges = countCharges();
+  sfx.undo();
+  refreshHud();
+}
+
+function detonate(cx, cy){
+  // charge consumed
+  game.cells[cy][cx].tile = '.';
+  // destroy adjacent rock walls (#)
+  for (const dy of [-1,0,1]){
+    for (const dx of [-1,0,1]){
+      if (dx===0 && dy===0) continue;
+      const t = tileAt(cx+dx, cy+dy);
+      if (t && t.tile === '#'){
+        t.tile = '.';
+      }
+    }
+  }
+  sfx.blast();
+  triggerShake(10, 380);
+  for (let i=0;i<30;i++){
+    const a = Math.random()*Math.PI*2;
+    const s = Math.random()*4+1;
+    particles.push({
+      x: cx*TILE + TILE/2, y: cy*TILE + TILE/2,
+      vx: Math.cos(a)*s, vy: Math.sin(a)*s,
+      life: 30+Math.random()*15, max:45,
+      r: Math.random()*3+1.5,
+      color: ['#fde047','#f59e0b','#ef4444'][i%3],
+    });
+  }
+  game.charges = countCharges();
+}
+
+function isWin(){
+  // every pad must have its matching ore on top, AND ore count balances
+  let oreLeft = 0;
+  for (let r=0;r<game.rows;r++){
+    for (let c=0;c<game.cols;c++){
+      const t = game.cells[r][c];
+      if (t.tile === 'I' && t.entity !== 'i') return false;
+      if (t.tile === 'G' && t.entity !== 'g') return false;
+      if (t.tile === 'R' && t.entity !== 'r') return false;
+      if (t.entity){
+        // misplaced ore? we want all ores on a pad
+        const onPad = (t.tile==='I' && t.entity==='i') || (t.tile==='G' && t.entity==='g') || (t.tile==='R' && t.entity==='r');
+        if (!onPad) oreLeft++;
+      }
+    }
+  }
+  return oreLeft === 0;
+}
+function refreshHud(){
+  document.getElementById('lvl-num').textContent = game.levelIdx + 1;
+  document.getElementById('moves-val').textContent = game.moves;
+  document.getElementById('par-val').textContent = game.par;
+  // count ore left (off-pad)
+  let off = 0;
+  for (let r=0;r<game.rows;r++){
+    for (let c=0;c<game.cols;c++){
+      const t = game.cells[r][c];
+      if (t.entity && !((t.tile==='I'&&t.entity==='i')||(t.tile==='G'&&t.entity==='g')||(t.tile==='R'&&t.entity==='r'))) off++;
+    }
+  }
+  document.getElementById('ore-val').textContent = off;
+}
+
+function onLevelWin(){
+  game.active = false;
+  sfx.win();
+  triggerShake(8, 350);
+  // confetti
+  for (let i=0;i<60;i++){
+    const a = Math.random()*Math.PI*2;
+    const s = Math.random()*4+1;
+    particles.push({
+      x: viewWMid(), y: viewHMid(),
+      vx: Math.cos(a)*s, vy: Math.sin(a)*s - 1,
+      life: 60+Math.random()*20, max:80, r:Math.random()*3+1.5,
+      color: ['#fde047','#f59e0b','#22d3ee','#a78bfa'][i%4],
+    });
+  }
+  // record
+  const idx = game.levelIdx;
+  const prev = meta.completed[idx];
+  if (prev == null || game.moves < prev){
+    meta.completed[idx] = game.moves;
+    saveMeta();
+  }
+  // populate win modal
+  document.getElementById('win-title').textContent = (game.moves <= game.par) ? 'PAR OR BETTER' : 'LEVEL CLEARED';
+  document.getElementById('win-sub').textContent = (game.moves <= game.par) ? 'Refinery applauds.' : 'Refinery satisfied.';
+  const sg = document.getElementById('win-summary');
+  sg.innerHTML = `
+    <div class="cell ${game.moves<=game.par?'gold':''}"><span>MOVES</span><b>${game.moves}</b></div>
+    <div class="cell"><span>PAR</span><b>${game.par}</b></div>
+    <div class="cell"><span>BEST</span><b>${meta.completed[idx] ?? game.moves}</b></div>
+    <div class="cell"><span>LEVEL</span><b>${game.name}</b></div>
+  `;
+  const next = document.getElementById('win-next');
+  if (idx + 1 < LEVELS.length){
+    next.style.display = '';
+    next.textContent = `NEXT — ${LEVELS[idx+1].name} ▶`;
+  } else {
+    next.style.display = 'none';
+    document.getElementById('win-title').textContent = 'GREAT FORGE COMPLETE';
+    document.getElementById('win-sub').textContent = 'You finished every level. Forge your way back any time.';
+  }
+  document.getElementById('win-screen').classList.remove('hidden');
+}
+function advanceLevel(){
+  document.getElementById('win-screen').classList.add('hidden');
+  if (game.levelIdx + 1 < LEVELS.length){
+    meta.current = game.levelIdx + 1;
+    saveMeta();
+    loadLevel(game.levelIdx + 1);
+  }
+}
+function resetLevel(){
+  document.getElementById('win-screen').classList.add('hidden');
+  loadLevel(game.levelIdx);
+  showToast('RESET');
+}
+function returnHome(){
+  document.getElementById('win-screen').classList.add('hidden');
+  document.getElementById('home-screen').classList.remove('hidden');
+}
+
+function startGame(){
+  document.getElementById('home-screen').classList.add('hidden');
+  // jump to current saved level if any
+  const target = meta.current || 0;
+  loadLevel(Math.min(target, LEVELS.length-1));
+}
+
+function viewWMid(){ return canvas.width/2; }
+function viewHMid(){ return canvas.height/2; }
+
+// level list rendering
+function refreshLevelList(){
+  const wrap = document.getElementById('level-list');
+  wrap.innerHTML = '<h4>LEVELS</h4>';
+  for (let i=0;i<LEVELS.length;i++){
+    const b = document.createElement('button');
+    b.className = 'lvl-btn';
+    b.textContent = (i+1);
+    if (game.levelIdx === i) b.classList.add('active');
+    if (meta.completed[i] != null) b.classList.add('complete');
+    if (i > Math.max(0, ...Object.keys(meta.completed).map(Number))+1 && meta.completed[i]==null && i!==0) b.classList.add('locked');
+    b.addEventListener('click', ()=>{
+      if (b.classList.contains('locked')) { showToast('COMPLETE EARLIER LEVELS'); return; }
+      loadLevel(i);
+    });
+    wrap.appendChild(b);
+  }
+}
+
+// input
+window.addEventListener('keydown', e=>{
+  if (e.code === 'KeyW' || e.code === 'ArrowUp')    { e.preventDefault(); movePlayer('up'); }
+  if (e.code === 'KeyS' || e.code === 'ArrowDown')  { e.preventDefault(); movePlayer('down'); }
+  if (e.code === 'KeyA' || e.code === 'ArrowLeft')  { e.preventDefault(); movePlayer('left'); }
+  if (e.code === 'KeyD' || e.code === 'ArrowRight') { e.preventDefault(); movePlayer('right'); }
+  if (e.code === 'KeyU' || e.code === 'KeyZ')       { undoMove(); }
+  if (e.code === 'KeyR') { resetLevel(); }
+  if (e.code === 'KeyH') toggleHelp();
+  if (e.code === 'Escape') {
+    document.getElementById('home-screen').classList.remove('hidden');
+    game.active = false;
+  }
+});
+document.querySelectorAll('.arrow').forEach(el=>{
+  const dir = el.dataset.dir;
+  el.addEventListener('touchstart', e=>{ e.preventDefault(); movePlayer(dir); }, {passive:false});
+});
+function toggleHelp(){
+  document.getElementById('help-screen').classList.toggle('hidden');
+}
+
+// particles + shake
+const particles = [];
+function spawnLand(c, r){
+  for (let i=0;i<14;i++){
+    const a = Math.random()*Math.PI*2;
+    const s = Math.random()*2.5+0.6;
+    particles.push({
+      x:c*TILE+TILE/2, y:r*TILE+TILE/2,
+      vx:Math.cos(a)*s, vy:Math.sin(a)*s - 1,
+      life:25+Math.random()*15, max:40, r:Math.random()*2+1.5,
+      color: ['#fbbf24','#fde047','#f59e0b'][i%3],
+    });
+  }
+}
+const shake = {x:0,y:0,intensity:0,dur:0};
+function triggerShake(i,d){ shake.intensity=Math.max(shake.intensity,i); shake.dur=Math.max(shake.dur,d); }
+
+// ============ RENDER ============
+function render(){
+  // shake
+  if (shake.dur>0){
+    shake.dur -= 16;
+    shake.x = (Math.random()-0.5)*shake.intensity;
+    shake.y = (Math.random()-0.5)*shake.intensity;
+    shake.intensity *= 0.93;
+  } else { shake.x=shake.y=0; }
+  boardWrap.style.transform = `translate(${shake.x}px,${shake.y}px)`;
+
+  if (!game.cells.length){ requestAnimationFrame(render); return; }
+
+  ctx.clearRect(0,0,canvas.width,canvas.height);
+
+  // tiles (background)
+  for (let r=0;r<game.rows;r++){
+    for (let c=0;c<game.cols;c++){
+      const t = game.cells[r][c];
+      drawTile(c, r, t);
+    }
+  }
+  // entities (ore blocks)
+  for (let r=0;r<game.rows;r++){
+    for (let c=0;c<game.cols;c++){
+      const t = game.cells[r][c];
+      if (t.entity) drawOre(c, r, t.entity, t.tile);
+    }
+  }
+  // player
+  drawPlayer(game.pX, game.pY);
+
+  // particles
+  for (let i=particles.length-1;i>=0;i--){
+    const p = particles[i];
+    p.x += p.vx; p.y += p.vy;
+    p.vy += 0.10;
+    p.life--;
+    if (p.life<=0){ particles.splice(i,1); continue; }
+    ctx.globalAlpha = p.life/p.max;
+    ctx.fillStyle = p.color;
+    ctx.beginPath(); ctx.arc(p.x, p.y, p.r, 0, Math.PI*2); ctx.fill();
+  }
+  ctx.globalAlpha = 1;
+
+  requestAnimationFrame(render);
+}
+
+function drawTile(c, r, t){
+  const x = c*TILE, y = r*TILE;
+  if (t.tile === 'W'){
+    // indestructible stone wall — dark with mortar lines
+    ctx.fillStyle = '#0a0a14';
+    ctx.fillRect(x, y, TILE, TILE);
+    ctx.fillStyle = '#1a1a26';
+    for (let i=0;i<3;i++){
+      const yy = y + (i*TILE/3);
+      ctx.fillRect(x+2, yy+TILE/6, TILE-4, TILE/6 - 2);
+    }
+    ctx.strokeStyle = '#33333d';
+    ctx.lineWidth = 1;
+    ctx.strokeRect(x+0.5, y+0.5, TILE-1, TILE-1);
+    return;
+  }
+  if (t.tile === '#'){
+    // rock wall (destructible)
+    ctx.fillStyle = '#3a2820';
+    ctx.fillRect(x, y, TILE, TILE);
+    // texture
+    ctx.fillStyle = '#5a3826';
+    for (let k=0;k<5;k++){
+      const px = x + 4 + (k*TILE/5);
+      const py = y + 4 + ((k*7)%TILE-12);
+      ctx.fillRect(px, py, 6, 4);
+    }
+    ctx.strokeStyle = '#5a3826';
+    ctx.lineWidth = 1;
+    ctx.strokeRect(x+0.5, y+0.5, TILE-1, TILE-1);
+    // crack hint
+    ctx.strokeStyle = '#1a0e08';
+    ctx.beginPath();
+    ctx.moveTo(x + TILE*0.2, y + TILE*0.4);
+    ctx.lineTo(x + TILE*0.5, y + TILE*0.6);
+    ctx.stroke();
+    return;
+  }
+  // floor
+  const dark = ((c+r)%2===0);
+  ctx.fillStyle = dark ? '#1a1424' : '#22192e';
+  ctx.fillRect(x, y, TILE, TILE);
+  ctx.strokeStyle = 'rgba(245,158,11,0.06)';
+  ctx.strokeRect(x+0.5, y+0.5, TILE-1, TILE-1);
+
+  // pads
+  if (t.tile === 'I' || t.tile === 'G' || t.tile === 'R'){
+    const padCol = t.tile==='I'?'var(--ore-iron)' : t.tile==='G'?'var(--ore-gold)' : 'var(--ore-ruby)';
+    const c1 = t.tile==='I'?'#94a3b8' : t.tile==='G'?'#fbbf24' : '#ef4444';
+    const c2 = t.tile==='I'?'#475569' : t.tile==='G'?'#b45309' : '#7f1d1d';
+    // pulse outline
+    const pulse = 0.5 + 0.5*Math.sin(performance.now()/350 + c*0.5 + r*0.5);
+    ctx.save();
+    ctx.globalAlpha = 0.30 + pulse*0.30;
+    ctx.fillStyle = c1;
+    ctx.fillRect(x+4, y+4, TILE-8, TILE-8);
+    ctx.restore();
+    ctx.strokeStyle = c1;
+    ctx.lineWidth = 2;
+    ctx.strokeRect(x+5, y+5, TILE-10, TILE-10);
+    ctx.fillStyle = c2;
+    ctx.font = `bold ${Math.floor(TILE*0.35)}px 'Cinzel', serif`;
+    ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    const letter = t.tile==='I'?'I' : t.tile==='G'?'G' : 'R';
+    ctx.fillText(letter, x+TILE/2, y+TILE/2);
+  }
+
+  // charge
+  if (t.tile === '*'){
+    const pulse = 0.5 + 0.5*Math.sin(performance.now()/200);
+    ctx.fillStyle = '#7f1d1d';
+    ctx.beginPath();
+    ctx.arc(x+TILE/2, y+TILE/2, TILE*0.30, 0, Math.PI*2);
+    ctx.fill();
+    ctx.fillStyle = `rgba(239,68,68,${0.6+pulse*0.4})`;
+    ctx.shadowColor = '#ef4444'; ctx.shadowBlur = 12;
+    ctx.beginPath();
+    ctx.arc(x+TILE/2, y+TILE/2, TILE*0.20, 0, Math.PI*2);
+    ctx.fill();
+    ctx.shadowBlur = 0;
+    // fuse
+    ctx.strokeStyle = '#fde047';
+    ctx.lineWidth = 1.5;
+    ctx.beginPath();
+    ctx.moveTo(x+TILE*0.5, y+TILE*0.40);
+    ctx.lineTo(x+TILE*0.6, y+TILE*0.30);
+    ctx.stroke();
+  }
+}
+
+function drawOre(c, r, kind, padTile){
+  const x = c*TILE, y = r*TILE;
+  const onPad = (padTile === 'I' && kind === 'i') || (padTile === 'G' && kind === 'g') || (padTile === 'R' && kind === 'r');
+  // shadow
+  ctx.fillStyle = 'rgba(0,0,0,0.4)';
+  ctx.beginPath();
+  ctx.ellipse(x+TILE/2, y+TILE*0.85, TILE*0.32, TILE*0.10, 0, 0, Math.PI*2);
+  ctx.fill();
+  // body
+  let cBase, cLight, cDark;
+  if (kind === 'i'){ cBase='#94a3b8'; cLight='#cbd5e1'; cDark='#475569'; }
+  else if (kind === 'g'){ cBase='#fbbf24'; cLight='#fde68a'; cDark='#b45309'; }
+  else { cBase='#ef4444'; cLight='#fecaca'; cDark='#7f1d1d'; }
+  const ix = x + TILE*0.16, iy = y + TILE*0.16;
+  const iw = TILE*0.68, ih = TILE*0.68;
+  const grad = ctx.createLinearGradient(ix, iy, ix+iw, iy+ih);
+  grad.addColorStop(0, cLight);
+  grad.addColorStop(0.5, cBase);
+  grad.addColorStop(1, cDark);
+  ctx.fillStyle = grad;
+  if (onPad){
+    ctx.shadowColor = cBase; ctx.shadowBlur = 18;
+  }
+  // crystal-cut hex
+  ctx.beginPath();
+  const cx = ix+iw/2, cy = iy+ih/2;
+  for (let k=0;k<6;k++){
+    const a = (k/6)*Math.PI*2 - Math.PI/6;
+    const px = cx + Math.cos(a)*iw*0.5;
+    const py = cy + Math.sin(a)*ih*0.5;
+    if (k===0) ctx.moveTo(px,py); else ctx.lineTo(px,py);
+  }
+  ctx.closePath();
+  ctx.fill();
+  ctx.shadowBlur = 0;
+  // facet highlight
+  ctx.fillStyle = 'rgba(255,255,255,0.40)';
+  ctx.beginPath();
+  ctx.moveTo(cx, iy);
+  ctx.lineTo(cx + iw*0.32, cy);
+  ctx.lineTo(cx, cy);
+  ctx.closePath();
+  ctx.fill();
+  // glyph
+  ctx.fillStyle = cDark;
+  ctx.font = `bold ${Math.floor(TILE*0.28)}px 'Cinzel', serif`;
+  ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+  const ch = kind==='i'?'i' : kind==='g'?'g' : 'r';
+  ctx.fillText(ch.toUpperCase(), cx, cy+1);
+  // checkmark if on pad
+  if (onPad){
+    ctx.strokeStyle = '#22c55e';
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.moveTo(cx-iw*0.18, cy+ih*0.05);
+    ctx.lineTo(cx-iw*0.05, cy+ih*0.18);
+    ctx.lineTo(cx+iw*0.20, cy-ih*0.15);
+    ctx.stroke();
+  }
+}
+
+function drawPlayer(c, r){
+  const x = c*TILE, y = r*TILE;
+  // shadow
+  ctx.fillStyle = 'rgba(0,0,0,0.4)';
+  ctx.beginPath();
+  ctx.ellipse(x+TILE/2, y+TILE*0.85, TILE*0.30, TILE*0.10, 0, 0, Math.PI*2);
+  ctx.fill();
+  // body
+  ctx.save();
+  ctx.translate(x+TILE/2, y+TILE/2);
+  // helmet
+  ctx.fillStyle = '#22d3ee';
+  ctx.shadowColor = '#22d3ee'; ctx.shadowBlur = 10;
+  ctx.beginPath();
+  ctx.arc(0, -TILE*0.05, TILE*0.22, 0, Math.PI*2);
+  ctx.fill();
+  ctx.shadowBlur = 0;
+  // visor stripe
+  ctx.fillStyle = '#0a0a14';
+  const visorY = -TILE*0.05;
+  if (game.pFacing === 'down')  ctx.fillRect(-TILE*0.16, visorY+TILE*0.02, TILE*0.32, TILE*0.06);
+  else if (game.pFacing === 'up') ctx.fillRect(-TILE*0.16, visorY-TILE*0.08, TILE*0.32, TILE*0.06);
+  else if (game.pFacing === 'left') ctx.fillRect(-TILE*0.20, visorY-TILE*0.02, TILE*0.10, TILE*0.10);
+  else                              ctx.fillRect(TILE*0.10, visorY-TILE*0.02, TILE*0.10, TILE*0.10);
+  // body
+  ctx.fillStyle = '#0e7490';
+  ctx.fillRect(-TILE*0.18, TILE*0.10, TILE*0.36, TILE*0.30);
+  // pickaxe
+  ctx.strokeStyle = '#94a3b8';
+  ctx.lineWidth = 3;
+  ctx.beginPath();
+  if (game.pFacing === 'right'){
+    ctx.moveTo(TILE*0.18, TILE*0.10);
+    ctx.lineTo(TILE*0.32, TILE*0.04);
+  } else if (game.pFacing === 'left'){
+    ctx.moveTo(-TILE*0.18, TILE*0.10);
+    ctx.lineTo(-TILE*0.32, TILE*0.04);
+  } else {
+    ctx.moveTo(TILE*0.18, TILE*0.10);
+    ctx.lineTo(TILE*0.30, TILE*0.20);
+  }
+  ctx.stroke();
+  ctx.fillStyle = '#fde047';
+  ctx.fillRect(-1, -TILE*0.18, 2, TILE*0.10);
+  ctx.restore();
+}
+
+// toast
+let toastTimer=null;
+function showToast(msg){
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.classList.add('show');
+  if (toastTimer) clearTimeout(toastTimer);
+  toastTimer = setTimeout(()=>el.classList.remove('show'), 1700);
+}
+
+// init
+refreshLevelList();
+requestAnimationFrame(render);
+
+// =======================================================
+// KLEVER WALLET
+// =======================================================
+let walletAddr=null, walletProvider=null;
+async function connectWallet(){
+  const pill = document.getElementById('wallet-pill');
+  const txt  = document.getElementById('wallet-text');
+  if (walletAddr){
+    walletAddr=null; walletProvider=null;
+    pill.classList.remove('connected');
+    txt.textContent='CONNECT KLEVER';
+    showToast('WALLET DISCONNECTED');
+    return;
+  }
+  txt.textContent='CONNECTING…';
+  try{
+    let address=null;
+    if (window.klever && typeof window.klever.request==='function'){
+      const res = await window.klever.request({method:'klv_requestAccounts'});
+      address = Array.isArray(res)?res[0]:(res?.address||res?.accounts?.[0]);
+      walletProvider='extension';
+    } else if (window.kleverWeb){
+      try{ if (typeof window.kleverWeb.initialize==='function') await window.kleverWeb.initialize(); }catch(e){}
+      address = window.kleverWeb.getWalletAddress?.() || window.kleverWeb.address;
+      walletProvider='k5';
+    } else throw new Error('no provider');
+    if (!address) throw new Error('no address');
+    walletAddr = address;
+    pill.classList.add('connected');
+    txt.textContent = address.slice(0,6)+'…'+address.slice(-4);
+    showToast('WALLET CONNECTED');
+  } catch(e){
+    txt.textContent='CONNECT KLEVER';
+    showToast('CONNECT FAILED');
+  }
+}
+</script>
+</body>
+</html>

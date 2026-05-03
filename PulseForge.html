@@ -1,0 +1,1206 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Pulse Forge | Oasis</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Audiowide&family=Rajdhani:wght@500;600;700&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg-deep:#06030f;
+    --bg-mid:#0d0820;
+    --panel:#13092a;
+    --pulse-1:#22d3ee;
+    --pulse-2:#a78bfa;
+    --pulse-3:#ff2bd6;
+    --pulse-4:#fde047;
+    --gold:#f59e0b;
+    --steel:#94a3b8;
+    --pearl:#e2e8f0;
+    --good:#22c55e;
+    --bad:#ef4444;
+    --line:rgba(167,139,250,0.22);
+  }
+  *{margin:0;padding:0;box-sizing:border-box;}
+  html,body{height:100%;overflow:hidden;}
+  body{
+    background:linear-gradient(180deg,#06030f 0%,#13092a 60%,#06030f 100%);
+    color:var(--pearl);font-family:'Rajdhani',sans-serif;
+    height:100vh;display:flex;flex-direction:column;
+    user-select:none;
+  }
+
+  /* ============ HEADER ============ */
+  header{
+    display:flex;justify-content:space-between;align-items:center;
+    padding:8px 16px;background:rgba(13,8,32,0.85);
+    border-bottom:1px solid var(--line);
+    backdrop-filter:blur(8px);position:relative;z-index:10;
+  }
+  .left,.right{display:flex;align-items:center;gap:10px;}
+  .oasis-link{
+    display:flex;align-items:center;gap:6px;text-decoration:none;
+    padding:4px 10px;border-radius:6px;
+    background:linear-gradient(135deg,rgba(167,139,250,0.18),rgba(34,211,238,0.14));
+    border:1px solid rgba(167,139,250,0.40);transition:all 0.18s;
+  }
+  .oasis-link:hover{filter:brightness(1.2);}
+  .oasis-mark{width:14px;height:14px;border-radius:3px;background:linear-gradient(135deg,#7c3aed,#22d3ee);}
+  .oasis-text{font-family:'Audiowide',sans-serif;font-size:0.7rem;letter-spacing:0.16em;color:#fff;}
+  .divider{width:1px;height:18px;background:var(--line);}
+  .game-title{
+    font-family:'Audiowide',sans-serif;font-size:1.05rem;letter-spacing:0.18em;
+    color:var(--pearl);
+    text-shadow:0 0 12px var(--pulse-2);
+  }
+  .game-title .accent{color:var(--pulse-1);text-shadow:0 0 12px var(--pulse-1);}
+  .version-badge{
+    font-family:'JetBrains Mono',monospace;font-size:0.65rem;font-weight:700;
+    background:rgba(167,139,250,0.20);border:1px solid rgba(167,139,250,0.50);
+    color:var(--pulse-2);padding:2px 8px;border-radius:4px;letter-spacing:0.08em;
+  }
+  .wallet-pill{
+    display:flex;align-items:center;gap:6px;padding:5px 11px;border-radius:6px;
+    background:rgba(124,58,237,0.18);border:1px solid rgba(124,58,237,0.45);
+    color:#cbd5e1;font-size:0.72rem;font-weight:600;cursor:pointer;
+    font-family:'JetBrains Mono',monospace;letter-spacing:0.04em;
+  }
+  .wallet-pill:hover{background:rgba(124,58,237,0.28);}
+  .wallet-pill .dot{width:6px;height:6px;border-radius:50%;background:#475569;}
+  .wallet-pill.connected .dot{background:var(--good);box-shadow:0 0 8px var(--good);}
+  .wallet-pill.connected{border-color:rgba(34,197,94,0.5);}
+  .help-btn{
+    width:26px;height:26px;border-radius:6px;
+    background:rgba(34,211,238,0.10);border:1px solid rgba(34,211,238,0.35);
+    color:var(--pulse-1);font-weight:700;cursor:pointer;
+    font-family:'JetBrains Mono',monospace;
+    display:flex;align-items:center;justify-content:center;
+  }
+
+  /* ============ STAGE ============ */
+  #game-container{flex:1;position:relative;overflow:hidden;}
+  #gameCanvas{width:100%;height:100%;display:block;}
+
+  /* ============ HUD ============ */
+  #hud{position:absolute;inset:0;pointer-events:none;}
+  .hud-tile{
+    position:absolute;background:rgba(13,8,32,0.78);
+    border:1px solid var(--line);border-radius:6px;
+    padding:8px 14px;backdrop-filter:blur(6px);
+    box-shadow:0 4px 20px rgba(167,139,250,0.18);
+  }
+  #score-tile{top:14px;left:14px;text-align:left;min-width:160px;}
+  #combo-tile{top:14px;left:50%;transform:translateX(-50%);text-align:center;min-width:160px;border-color:rgba(34,211,238,0.4);}
+  #accuracy-tile{top:14px;right:14px;text-align:right;min-width:160px;}
+
+  .tile-label{
+    font-family:'JetBrains Mono',monospace;font-size:0.55rem;
+    font-weight:700;letter-spacing:0.18em;color:var(--steel);
+    text-transform:uppercase;
+  }
+  .tile-value{
+    font-family:'Audiowide',sans-serif;font-size:1.4rem;
+    color:var(--pearl);
+    text-shadow:0 0 10px var(--pulse-2);
+    line-height:1.05;letter-spacing:0.04em;
+  }
+  #combo-value{color:var(--pulse-1);text-shadow:0 0 12px var(--pulse-1);font-size:1.7rem;}
+  .tile-sub{
+    font-family:'JetBrains Mono',monospace;font-size:0.65rem;
+    color:var(--gold);letter-spacing:0.05em;
+  }
+
+  /* progress bar (song progress) */
+  #song-progress{
+    position:absolute;top:80px;left:50%;transform:translateX(-50%);
+    width:50%;max-width:360px;
+  }
+  .prog-track{
+    height:6px;background:rgba(0,0,0,0.5);border:1px solid var(--line);
+    border-radius:3px;overflow:hidden;
+  }
+  .prog-fill{
+    height:100%;width:0%;
+    background:linear-gradient(90deg,var(--pulse-1),var(--pulse-2),var(--pulse-3));
+    transition:width 0.1s;
+  }
+  .prog-label{
+    text-align:center;font-family:'JetBrains Mono',monospace;
+    font-size:0.6rem;color:var(--steel);letter-spacing:0.16em;
+    margin-top:3px;text-transform:uppercase;
+  }
+
+  /* judgement popup */
+  .judge-pop{
+    position:absolute;pointer-events:none;
+    font-family:'Audiowide',sans-serif;font-size:1.3rem;
+    letter-spacing:0.10em;
+    animation:judgePop 0.55s ease-out forwards;
+    text-shadow:0 0 8px currentColor;
+  }
+  .judge-pop.perfect { color:#fde047; }
+  .judge-pop.great   { color:#22d3ee; }
+  .judge-pop.good    { color:#a78bfa; }
+  .judge-pop.miss    { color:#ef4444; }
+  @keyframes judgePop{
+    0%{transform:translateY(0) scale(0.7);opacity:1;}
+    25%{transform:translateY(-8px) scale(1.2);opacity:1;}
+    100%{transform:translateY(-30px) scale(1);opacity:0;}
+  }
+
+  /* ============ MENUS ============ */
+  .menu{
+    position:absolute;inset:0;
+    display:flex;flex-direction:column;align-items:center;justify-content:center;
+    gap:14px;background:rgba(6,3,15,0.86);backdrop-filter:blur(10px);
+    z-index:20;
+  }
+  .menu.hidden{display:none;}
+  .menu .panel{
+    background:linear-gradient(160deg,rgba(19,9,42,0.96),rgba(13,8,32,0.96));
+    border:1px solid var(--line);border-top:2px solid var(--pulse-2);
+    border-radius:8px;padding:28px 36px;max-width:560px;width:90%;
+    text-align:center;
+    box-shadow:0 14px 60px rgba(167,139,250,0.25);
+  }
+  .menu h1{
+    font-family:'Audiowide',sans-serif;font-size:2.6rem;letter-spacing:0.10em;
+    color:var(--pearl);
+    text-shadow:0 0 14px var(--pulse-2),0 0 28px var(--pulse-2);
+    margin-bottom:6px;
+  }
+  .menu h1 .accent{color:var(--pulse-1);text-shadow:0 0 14px var(--pulse-1);}
+  .menu h2{
+    font-family:'Audiowide',sans-serif;font-size:1.5rem;
+    letter-spacing:0.16em;color:var(--gold);margin-bottom:10px;
+    text-shadow:0 0 12px var(--gold);
+  }
+  .menu p{font-size:1rem;line-height:1.5;color:#cbd5e1;margin-bottom:6px;}
+  .menu .row{display:flex;gap:12px;flex-wrap:wrap;justify-content:center;margin-top:14px;}
+  button.pulse-btn{
+    background:linear-gradient(135deg,var(--pulse-2),#4a1a8a);
+    color:#fff;border:none;border-radius:6px;
+    padding:10px 24px;font-family:'Audiowide',sans-serif;
+    font-size:0.85rem;letter-spacing:0.18em;cursor:pointer;
+    transition:all 0.18s;
+    box-shadow:0 6px 18px rgba(167,139,250,0.40);
+  }
+  button.pulse-btn:hover{filter:brightness(1.18);transform:translateY(-1px);}
+  button.pulse-btn.alt{
+    background:linear-gradient(135deg,#0e7490,var(--pulse-1));
+    box-shadow:0 6px 18px rgba(34,211,238,0.40);
+  }
+  button.pulse-btn.ghost{background:transparent;border:1px solid var(--line);color:#cbd5e1;box-shadow:none;}
+  button.pulse-btn.ghost:hover{background:rgba(167,139,250,0.10);color:#fff;}
+
+  /* track / difficulty pickers */
+  .picker-row{
+    display:flex;gap:10px;justify-content:center;margin:14px 0 4px;flex-wrap:wrap;
+  }
+  .pick-card{
+    width:140px;padding:10px 12px;
+    background:rgba(13,8,32,0.85);
+    border:1px solid var(--line);border-radius:6px;
+    cursor:pointer;text-align:left;
+    transition:all 0.16s;
+  }
+  .pick-card:hover{border-color:var(--pulse-2);transform:translateY(-2px);}
+  .pick-card.selected{
+    border-color:var(--pulse-1);
+    box-shadow:0 0 0 1px var(--pulse-1),0 8px 20px rgba(34,211,238,0.30);
+  }
+  .pick-card .pname{
+    font-family:'Audiowide',sans-serif;font-size:0.85rem;letter-spacing:0.08em;
+    color:var(--pearl);text-shadow:0 0 6px var(--pulse-2);
+  }
+  .pick-card .pdesc{
+    font-family:'Rajdhani',sans-serif;font-size:0.74rem;
+    color:#cbd5e1;line-height:1.4;margin-top:3px;
+  }
+  .pick-card .pmeta{
+    font-family:'JetBrains Mono',monospace;font-size:0.62rem;
+    color:var(--gold);margin-top:5px;letter-spacing:0.04em;
+  }
+
+  /* end summary */
+  .summary-grid{
+    display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:14px 0;text-align:left;
+  }
+  .summary-grid .cell{
+    background:rgba(13,8,32,0.85);border:1px solid var(--line);
+    border-radius:5px;padding:8px 12px;
+    font-family:'JetBrains Mono',monospace;font-size:0.78rem;
+    display:flex;justify-content:space-between;
+  }
+  .summary-grid .cell span{color:var(--steel);}
+  .summary-grid .cell b{color:var(--pearl);}
+  .summary-grid .cell.gold{border-color:var(--gold);}
+  .summary-grid .cell.gold b{color:var(--gold);}
+
+  .grade-display{
+    font-family:'Audiowide',sans-serif;font-size:4.5rem;
+    line-height:1;margin:6px 0 8px;
+    text-shadow:0 0 24px currentColor;
+    letter-spacing:0.06em;
+  }
+  .grade-display.S { color:#fde047; }
+  .grade-display.A { color:#22d3ee; }
+  .grade-display.B { color:#a78bfa; }
+  .grade-display.C { color:#fbbf24; }
+  .grade-display.D { color:#94a3b8; }
+  .grade-display.F { color:#ef4444; }
+
+  /* ============ MOBILE LANE BUTTONS ============ */
+  #mobile-controls{display:none;position:absolute;left:0;right:0;bottom:14px;justify-content:center;gap:8px;pointer-events:none;}
+  .lane-btn{
+    pointer-events:auto;
+    width:64px;height:64px;border-radius:12px;
+    display:flex;align-items:center;justify-content:center;
+    font-family:'Audiowide',sans-serif;font-size:0.9rem;
+    color:#fff;border:2px solid;
+    background:rgba(13,8,32,0.7);backdrop-filter:blur(6px);
+  }
+  .lane-btn[data-lane="0"]{border-color:var(--pulse-1);box-shadow:0 0 14px rgba(34,211,238,0.5);}
+  .lane-btn[data-lane="1"]{border-color:var(--pulse-2);box-shadow:0 0 14px rgba(167,139,250,0.5);}
+  .lane-btn[data-lane="2"]{border-color:var(--pulse-3);box-shadow:0 0 14px rgba(255,43,214,0.5);}
+  .lane-btn[data-lane="3"]{border-color:var(--pulse-4);box-shadow:0 0 14px rgba(253,224,71,0.5);}
+  @media (pointer:coarse){#mobile-controls{display:flex;}}
+
+  /* toast */
+  #toast{
+    position:absolute;top:130px;left:50%;transform:translateX(-50%);
+    background:rgba(13,8,32,0.95);border:1px solid var(--pulse-2);
+    padding:8px 18px;border-radius:5px;
+    font-family:'Audiowide',sans-serif;font-size:0.82rem;
+    letter-spacing:0.16em;color:var(--pulse-2);
+    text-shadow:0 0 8px var(--pulse-2);
+    opacity:0;transition:opacity 0.3s;pointer-events:none;
+    z-index:30;
+  }
+  #toast.show{opacity:1;}
+
+  @media (max-width:560px){
+    .game-title{font-size:0.85rem;letter-spacing:0.12em;}
+    .menu .panel{padding:20px 18px;}
+    .menu h1{font-size:1.7rem;}
+    .tile-value{font-size:1.05rem;}
+    .hud-tile{padding:5px 10px;min-width:110px !important;}
+  }
+</style>
+</head>
+<body>
+<header>
+  <div class="left">
+    <a class="oasis-link" href="https://oasis-hub.pages.dev" target="_top" title="Back to Oasis Hub">
+      <span class="oasis-mark"></span>
+      <span class="oasis-text">OASIS</span>
+    </a>
+    <span class="divider"></span>
+    <span class="game-title">PULSE <span class="accent">FORGE</span></span>
+    <span class="version-badge">v1.0</span>
+  </div>
+  <div class="right">
+    <button id="wallet-pill" class="wallet-pill" onclick="connectWallet()">
+      <span class="dot"></span><span id="wallet-text">CONNECT KLEVER</span>
+    </button>
+    <button class="help-btn" onclick="toggleHelp()">?</button>
+  </div>
+</header>
+
+<div id="game-container">
+  <canvas id="gameCanvas"></canvas>
+
+  <div id="hud">
+    <div class="hud-tile" id="score-tile">
+      <div class="tile-label">SCORE</div>
+      <div class="tile-value"><span id="score-val">0</span></div>
+      <div class="tile-sub">Best: <span id="best-val">0</span></div>
+    </div>
+    <div class="hud-tile" id="combo-tile">
+      <div class="tile-label">COMBO</div>
+      <div class="tile-value" id="combo-value"><span id="combo-val">0</span></div>
+      <div class="tile-sub" id="combo-sub">CHAIN HITS TO MULTIPLY</div>
+    </div>
+    <div class="hud-tile" id="accuracy-tile">
+      <div class="tile-label">ACCURACY</div>
+      <div class="tile-value"><span id="acc-val">100</span>%</div>
+      <div class="tile-sub" id="acc-sub">P:0 G:0 g:0 M:0</div>
+    </div>
+
+    <div id="song-progress">
+      <div class="prog-track"><div class="prog-fill" id="prog-fill"></div></div>
+      <div class="prog-label"><span id="prog-name">—</span> · <span id="prog-time">0:00</span></div>
+    </div>
+
+    <div id="toast"></div>
+  </div>
+
+  <div id="mobile-controls">
+    <div class="lane-btn" data-lane="0">D</div>
+    <div class="lane-btn" data-lane="1">F</div>
+    <div class="lane-btn" data-lane="2">J</div>
+    <div class="lane-btn" data-lane="3">K</div>
+  </div>
+
+  <!-- HOME -->
+  <div id="home-screen" class="menu">
+    <div class="panel">
+      <h1>PULSE <span class="accent">FORGE</span></h1>
+      <p style="color:var(--gold);letter-spacing:0.16em;font-family:'Audiowide',sans-serif;font-size:0.78rem;margin-bottom:10px;">FOUR LANES · ONE BEAT</p>
+      <p>Hit each note as it crosses the strike line. Stack <strong>perfects</strong> to forge your combo. Three difficulties, three procedurally generated tracks.</p>
+
+      <div style="margin-top:14px;font-family:'JetBrains Mono',monospace;font-size:0.7rem;color:var(--steel);letter-spacing:0.10em;">SELECT TRACK</div>
+      <div class="picker-row" id="track-picker">
+        <div class="pick-card selected" data-track="aurora">
+          <div class="pname">AURORA</div>
+          <div class="pdesc">Calm pads, slow lead, gentle pulse.</div>
+          <div class="pmeta">110 BPM · 2:00</div>
+        </div>
+        <div class="pick-card" data-track="circuit">
+          <div class="pname">CIRCUIT</div>
+          <div class="pdesc">Driving bass, syncopated hats, tight kick.</div>
+          <div class="pmeta">128 BPM · 2:00</div>
+        </div>
+        <div class="pick-card" data-track="solstice">
+          <div class="pname">SOLSTICE</div>
+          <div class="pdesc">Up-tempo arp, wild fills, crash cymbals.</div>
+          <div class="pmeta">152 BPM · 2:00</div>
+        </div>
+      </div>
+
+      <div style="margin-top:6px;font-family:'JetBrains Mono',monospace;font-size:0.7rem;color:var(--steel);letter-spacing:0.10em;">DIFFICULTY</div>
+      <div class="picker-row" id="diff-picker">
+        <div class="pick-card selected" data-diff="easy">
+          <div class="pname">EASY</div>
+          <div class="pdesc">Quarter notes, single lane at a time.</div>
+          <div class="pmeta">×0.7 SCORE</div>
+        </div>
+        <div class="pick-card" data-diff="normal">
+          <div class="pname">NORMAL</div>
+          <div class="pdesc">Eighth notes, occasional doubles.</div>
+          <div class="pmeta">×1.0 SCORE</div>
+        </div>
+        <div class="pick-card" data-diff="hard">
+          <div class="pname">HARD</div>
+          <div class="pdesc">Sixteenths, jacks, chord stacks.</div>
+          <div class="pmeta">×1.5 SCORE</div>
+        </div>
+      </div>
+
+      <div class="row">
+        <button class="pulse-btn" onclick="startSong()">FORGE ⚡</button>
+        <button class="pulse-btn ghost" onclick="toggleHelp()">CONTROLS</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- END -->
+  <div id="end-screen" class="menu hidden">
+    <div class="panel">
+      <h2 id="end-title">SET COMPLETE</h2>
+      <div id="end-grade" class="grade-display A">A</div>
+      <div id="end-summary" class="summary-grid"></div>
+      <div class="row">
+        <button class="pulse-btn alt" onclick="startSong()">RUN AGAIN</button>
+        <button class="pulse-btn ghost" onclick="returnHome()">HOME</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- PAUSE -->
+  <div id="pause-screen" class="menu hidden">
+    <div class="panel">
+      <h1>PAUSED</h1>
+      <div class="row">
+        <button class="pulse-btn alt" onclick="togglePause()">RESUME</button>
+        <button class="pulse-btn ghost" onclick="returnHome()">HOME</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- HELP -->
+  <div id="help-screen" class="menu hidden">
+    <div class="panel" style="text-align:left;">
+      <h2 style="text-align:center;">CONTROLS</h2>
+      <p style="font-family:'JetBrains Mono',monospace;font-size:0.85rem;line-height:1.7;">
+        <strong style="color:var(--pulse-1);">D</strong> · <strong style="color:var(--pulse-2);">F</strong> · <strong style="color:var(--pulse-3);">J</strong> · <strong style="color:var(--pulse-4);">K</strong> — lanes 1–4<br>
+        <strong>ESC</strong> — pause &nbsp; <strong>H</strong> — help
+      </p>
+      <p style="margin-top:12px;color:#cbd5e1;">
+        <strong style="color:#fde047;">PERFECT</strong> ±35ms · <strong style="color:var(--pulse-1);">GREAT</strong> ±70ms · <strong style="color:var(--pulse-2);">GOOD</strong> ±110ms · else <strong style="color:var(--bad);">MISS</strong>.
+      </p>
+      <p style="color:var(--steel);font-size:0.85rem;">
+        Combo multiplier ramps every 25 hits up to ×4. Missing breaks the combo.
+      </p>
+      <div class="row" style="justify-content:center;">
+        <button class="pulse-btn ghost" onclick="toggleHelp()">CLOSE</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+// ==========================================================
+// PULSE FORGE — 4-lane rhythm game
+// ==========================================================
+
+const canvas = document.getElementById('gameCanvas');
+const ctx    = canvas.getContext('2d');
+const container = document.getElementById('game-container');
+
+let viewW = 800, viewH = 600;
+function resizeCanvas(){
+  const r = container.getBoundingClientRect();
+  canvas.width  = r.width;
+  canvas.height = r.height;
+  viewW = canvas.width;
+  viewH = canvas.height;
+}
+window.addEventListener('resize', resizeCanvas);
+resizeCanvas();
+
+// ---- audio ----
+const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+const masterGain = audioCtx.createGain();
+masterGain.gain.value = 0.6;
+masterGain.connect(audioCtx.destination);
+
+function noteFreq(n){ return 440 * Math.pow(2,(n-69)/12); }
+
+function playNote({freq=440, type='sine', dur=0.18, gain=0.20, attack=0.01, release=0.10, slide=null}={}){
+  if (audioCtx.state==='suspended') audioCtx.resume();
+  const o = audioCtx.createOscillator();
+  const g = audioCtx.createGain();
+  o.connect(g); g.connect(masterGain);
+  o.type=type; o.frequency.setValueAtTime(freq, audioCtx.currentTime);
+  if (slide!==null) o.frequency.exponentialRampToValueAtTime(slide, audioCtx.currentTime+dur);
+  g.gain.setValueAtTime(0.001, audioCtx.currentTime);
+  g.gain.exponentialRampToValueAtTime(gain, audioCtx.currentTime+attack);
+  g.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime+dur);
+  o.start(); o.stop(audioCtx.currentTime+dur+release);
+}
+function kick(){
+  if (audioCtx.state==='suspended') audioCtx.resume();
+  const o = audioCtx.createOscillator();
+  const g = audioCtx.createGain();
+  o.connect(g); g.connect(masterGain);
+  o.type='sine';
+  o.frequency.setValueAtTime(120, audioCtx.currentTime);
+  o.frequency.exponentialRampToValueAtTime(40, audioCtx.currentTime+0.18);
+  g.gain.setValueAtTime(0.45, audioCtx.currentTime);
+  g.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime+0.22);
+  o.start(); o.stop(audioCtx.currentTime+0.24);
+}
+function hat(){
+  if (audioCtx.state==='suspended') audioCtx.resume();
+  const buf = audioCtx.createBuffer(1, audioCtx.sampleRate*0.05, audioCtx.sampleRate);
+  const d = buf.getChannelData(0);
+  for (let i=0;i<d.length;i++) d[i] = (Math.random()*2-1) * (1 - i/d.length);
+  const src = audioCtx.createBufferSource();
+  src.buffer = buf;
+  const hp = audioCtx.createBiquadFilter();
+  hp.type='highpass'; hp.frequency.value = 6000;
+  const g = audioCtx.createGain();
+  g.gain.value = 0.18;
+  src.connect(hp); hp.connect(g); g.connect(masterGain);
+  src.start();
+}
+function snare(){
+  if (audioCtx.state==='suspended') audioCtx.resume();
+  const buf = audioCtx.createBuffer(1, audioCtx.sampleRate*0.10, audioCtx.sampleRate);
+  const d = buf.getChannelData(0);
+  for (let i=0;i<d.length;i++) d[i] = (Math.random()*2-1) * (1 - i/d.length);
+  const src = audioCtx.createBufferSource();
+  src.buffer = buf;
+  const bp = audioCtx.createBiquadFilter();
+  bp.type='bandpass'; bp.frequency.value = 1800; bp.Q.value = 0.8;
+  const g = audioCtx.createGain();
+  g.gain.value = 0.30;
+  src.connect(bp); bp.connect(g); g.connect(masterGain);
+  // tonal body
+  const o = audioCtx.createOscillator();
+  const og = audioCtx.createGain();
+  o.connect(og); og.connect(masterGain);
+  o.type='triangle'; o.frequency.value = 220;
+  og.gain.setValueAtTime(0.20, audioCtx.currentTime);
+  og.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime+0.10);
+  o.start(); o.stop(audioCtx.currentTime+0.12);
+  src.start();
+}
+
+// ---- track defs ----
+const TRACKS = {
+  aurora: {
+    name:'AURORA', bpm:110, bars:32,
+    leadOctave: 4,
+    scale: [0,2,4,5,7,9,11], // major (C)
+    rootMidi: 60,
+    color: ['#22d3ee','#a78bfa','#67e8f9','#fde047'],
+  },
+  circuit: {
+    name:'CIRCUIT', bpm:128, bars:32,
+    leadOctave: 4,
+    scale: [0,2,3,5,7,8,10], // minor
+    rootMidi: 57,
+    color: ['#22d3ee','#a78bfa','#ff2bd6','#fde047'],
+  },
+  solstice: {
+    name:'SOLSTICE', bpm:152, bars:32,
+    leadOctave: 5,
+    scale: [0,2,3,5,7,9,10], // dorian
+    rootMidi: 62,
+    color: ['#22d3ee','#a78bfa','#ff2bd6','#fde047'],
+  },
+};
+
+// ---- charting (procedural) ----
+function generateChart(trackKey, diff){
+  const t = TRACKS[trackKey];
+  const beatSec = 60 / t.bpm;
+  const barSec  = beatSec * 4;
+  const totalSec = t.bars * barSec;
+
+  const notes = []; // {time, lane}
+  // density per beat by difficulty
+  const density = diff==='easy' ? 0.55 : diff==='normal' ? 0.95 : 1.6;
+  // probability of double-tap per slot
+  const doubleP = diff==='easy' ? 0 : diff==='normal' ? 0.05 : 0.20;
+  // probability of triple
+  const tripleP = diff==='hard' ? 0.05 : 0;
+
+  // we step in 16th-note increments
+  const stepSec = beatSec / 4;
+  let prevLane = -1;
+  for (let s = 4*4; s < t.bars*4*4; s++){ // skip first bar lead-in
+    // beat strength: 1 on quarter, 0.6 on eighth, 0.3 on 16th
+    const beatPos = s % 4;
+    const strength = beatPos===0?1.0 : (beatPos===2?0.7 : 0.4);
+    const time = s * stepSec;
+    // raw chance
+    let chance = density * (strength*0.8 + 0.2);
+    if (Math.random() < Math.min(0.95, chance)){
+      let lanes = [];
+      // primary lane: avoid same as prev too often on hard
+      let lane;
+      do { lane = Math.floor(Math.random()*4); } while (lane===prevLane && Math.random()<0.4);
+      lanes.push(lane);
+      // doubles
+      if (Math.random() < doubleP){
+        let l2;
+        do { l2 = Math.floor(Math.random()*4); } while (l2===lane);
+        lanes.push(l2);
+      }
+      // triples
+      if (Math.random() < tripleP){
+        for (let l=0;l<4;l++) if (!lanes.includes(l) && Math.random()<0.5){ lanes.push(l); break; }
+      }
+      for (const l of lanes){
+        notes.push({time, lane:l});
+      }
+      prevLane = lane;
+    }
+  }
+  // sort notes by time (we appended in order but make sure)
+  notes.sort((a,b)=>a.time-b.time);
+  return {notes, totalSec, ...t};
+}
+
+// ---- backing track scheduler (procedural drums + bass + arp) ----
+let songStartCtxTime = 0;
+let scheduledUntilSec = 0;
+let sched = null; // current chart
+
+function scheduleAhead(){
+  if (!song.active || song.paused) return;
+  const now  = audioCtx.currentTime;
+  const cursor = (now - songStartCtxTime);
+  const lookAhead = 0.4;
+  const t = sched;
+  if (!t) return;
+  const beatSec = 60 / t.bpm;
+  const stepSec = beatSec / 4;
+  // schedule any 16th step that falls within [scheduledUntilSec, cursor+lookAhead]
+  let stepIdx = Math.ceil(scheduledUntilSec / stepSec);
+  while (stepIdx * stepSec < cursor + lookAhead && stepIdx * stepSec < t.totalSec){
+    const stepTime = stepIdx * stepSec;
+    const ctxTime  = songStartCtxTime + stepTime;
+    scheduleStep(t, stepIdx, ctxTime);
+    stepIdx++;
+  }
+  scheduledUntilSec = stepIdx * stepSec;
+}
+function scheduleStep(t, stepIdx, ctxTime){
+  const beatPos = stepIdx % 4;
+  const barPos  = Math.floor(stepIdx/4) % 4;
+  // kick: every quarter
+  if (beatPos === 0){
+    setTimeout(()=>kick(), Math.max(0, (ctxTime - audioCtx.currentTime)*1000));
+  }
+  // snare: 2 and 4
+  if (beatPos === 0 && (Math.floor(stepIdx/4) % 2 === 1)){
+    setTimeout(()=>snare(), Math.max(0, (ctxTime - audioCtx.currentTime)*1000));
+  }
+  // hat: every 8th
+  if (beatPos === 0 || beatPos === 2){
+    setTimeout(()=>hat(), Math.max(0, (ctxTime - audioCtx.currentTime)*1000));
+  }
+  // bass: root + fifth on quarter
+  if (beatPos === 0){
+    const note = t.rootMidi + ((Math.floor(stepIdx/16))%4 === 0 ? 0 : (Math.floor(stepIdx/16))%4 === 1 ? 7 : (Math.floor(stepIdx/16))%4 === 2 ? 5 : 3) - 12;
+    setTimeout(()=>playNote({freq:noteFreq(note), type:'sawtooth', dur:0.20, gain:0.18}),
+      Math.max(0, (ctxTime - audioCtx.currentTime)*1000));
+  }
+  // arpeggio lead: every 8th
+  if (beatPos % 2 === 0){
+    const scaleIdx = (stepIdx + Math.floor(stepIdx/16)*2) % t.scale.length;
+    const note = t.rootMidi + 12*(t.leadOctave - Math.floor(t.rootMidi/12)) + t.scale[scaleIdx];
+    setTimeout(()=>playNote({freq:noteFreq(note), type:'triangle', dur:0.18, gain:0.10}),
+      Math.max(0, (ctxTime - audioCtx.currentTime)*1000));
+  }
+}
+
+// ---- input ----
+const KEY_TO_LANE = { KeyD:0, KeyF:1, KeyJ:2, KeyK:3 };
+const LANE_KEYS = ['D','F','J','K'];
+const lanePressed = [false,false,false,false];
+window.addEventListener('keydown', e=>{
+  if (e.repeat) return;
+  if (e.code==='Escape') togglePause();
+  if (e.code==='KeyH') toggleHelp();
+  const lane = KEY_TO_LANE[e.code];
+  if (lane!=null){ pressLane(lane); }
+});
+window.addEventListener('keyup', e=>{
+  const lane = KEY_TO_LANE[e.code];
+  if (lane!=null){ lanePressed[lane] = false; }
+});
+
+document.querySelectorAll('.lane-btn').forEach(el=>{
+  const lane = +el.dataset.lane;
+  el.addEventListener('touchstart', ev=>{ ev.preventDefault(); pressLane(lane); }, {passive:false});
+  el.addEventListener('touchend',   ev=>{ ev.preventDefault(); lanePressed[lane]=false; }, {passive:false});
+});
+
+// ---- pickers ----
+let trackKey = 'aurora';
+let diffKey = 'easy';
+document.querySelectorAll('#track-picker .pick-card').forEach(c=>{
+  c.addEventListener('click', ()=>{
+    document.querySelectorAll('#track-picker .pick-card').forEach(x=>x.classList.remove('selected'));
+    c.classList.add('selected');
+    trackKey = c.dataset.track;
+  });
+});
+document.querySelectorAll('#diff-picker .pick-card').forEach(c=>{
+  c.addEventListener('click', ()=>{
+    document.querySelectorAll('#diff-picker .pick-card').forEach(x=>x.classList.remove('selected'));
+    c.classList.add('selected');
+    diffKey = c.dataset.diff;
+  });
+});
+
+// ---- save ----
+const SAVE_KEY = 'pulseforge:save';
+const saved = (()=>{ try{return JSON.parse(localStorage.getItem(SAVE_KEY))||{};}catch(e){return{};} })();
+const meta = {
+  best: saved.best || {},   // best[`${track}:${diff}`] = score
+  lifetime: saved.lifetime || 0,
+};
+function saveMeta(){ localStorage.setItem(SAVE_KEY, JSON.stringify(meta)); }
+
+// ---- song state ----
+const song = {
+  active:false, paused:false,
+  notes:[],  // each note has lane, time, hit, judgement
+  scrollTime: 1.6, // time it takes a note to traverse from top to strike line
+  pausedAt: 0,
+  pauseAccum: 0,
+  // counters
+  perfect:0, great:0, good:0, miss:0,
+  combo:0, maxCombo:0,
+  multiplier:1,
+  score:0,
+  judgement:null,
+  judgementTime:0,
+  flashLane:[0,0,0,0],
+};
+
+// ---- gameplay flow ----
+function startSong(){
+  // chart
+  const chart = generateChart(trackKey, diffKey);
+  sched = chart;
+  song.notes = chart.notes.map(n=>({...n, hit:false, judge:null, missed:false}));
+  song.active = true;
+  song.paused = false;
+  song.perfect = song.great = song.good = song.miss = 0;
+  song.combo = song.maxCombo = 0;
+  song.multiplier = 1;
+  song.score = 0;
+  song.judgement = null;
+  song.flashLane = [0,0,0,0];
+  scheduledUntilSec = 0;
+  // 1.5s lead-in so player can prep
+  songStartCtxTime = audioCtx.currentTime + 1.5;
+  document.getElementById('home-screen').classList.add('hidden');
+  document.getElementById('end-screen').classList.add('hidden');
+  document.getElementById('prog-name').textContent = `${TRACKS[trackKey].name} · ${diffKey.toUpperCase()}`;
+  refreshHud();
+  showToast(`${TRACKS[trackKey].name} — ${diffKey.toUpperCase()}`);
+}
+function endSong(){
+  song.active = false;
+  // grade calc
+  const totalNotes = song.notes.length || 1;
+  const acc = ((song.perfect*1.0 + song.great*0.85 + song.good*0.55) / totalNotes) * 100;
+  let grade = 'F';
+  if (acc >= 96) grade = 'S';
+  else if (acc >= 90) grade = 'A';
+  else if (acc >= 80) grade = 'B';
+  else if (acc >= 70) grade = 'C';
+  else if (acc >= 55) grade = 'D';
+
+  const key = `${trackKey}:${diffKey}`;
+  const prevBest = meta.best[key] || 0;
+  const newRecord = song.score > prevBest;
+  if (newRecord){ meta.best[key] = song.score; saveMeta(); }
+  meta.lifetime = (meta.lifetime || 0) + song.score;
+  saveMeta();
+
+  document.getElementById('end-title').textContent = newRecord ? 'NEW RECORD' : 'SET COMPLETE';
+  const gd = document.getElementById('end-grade');
+  gd.className = `grade-display ${grade}`;
+  gd.textContent = grade;
+  const sg = document.getElementById('end-summary');
+  sg.innerHTML = `
+    <div class="cell ${newRecord?'gold':''}"><span>SCORE</span><b>${song.score}</b></div>
+    <div class="cell"><span>BEST</span><b>${meta.best[key]||0}</b></div>
+    <div class="cell"><span>ACCURACY</span><b>${acc.toFixed(1)}%</b></div>
+    <div class="cell"><span>MAX COMBO</span><b>×${song.maxCombo}</b></div>
+    <div class="cell"><span>PERFECT</span><b style="color:#fde047;">${song.perfect}</b></div>
+    <div class="cell"><span>GREAT</span><b style="color:#22d3ee;">${song.great}</b></div>
+    <div class="cell"><span>GOOD</span><b style="color:#a78bfa;">${song.good}</b></div>
+    <div class="cell"><span>MISS</span><b style="color:#ef4444;">${song.miss}</b></div>
+  `;
+  document.getElementById('end-screen').classList.remove('hidden');
+}
+function returnHome(){
+  song.active = false;
+  document.getElementById('end-screen').classList.add('hidden');
+  document.getElementById('pause-screen').classList.add('hidden');
+  document.getElementById('home-screen').classList.remove('hidden');
+}
+function togglePause(){
+  if (!song.active) return;
+  song.paused = !song.paused;
+  if (song.paused){
+    song.pausedAt = audioCtx.currentTime;
+  } else {
+    const delta = audioCtx.currentTime - song.pausedAt;
+    songStartCtxTime += delta;
+    scheduledUntilSec = (audioCtx.currentTime - songStartCtxTime); // resume scheduling from now
+  }
+  document.getElementById('pause-screen').classList.toggle('hidden', !song.paused);
+}
+function toggleHelp(){
+  document.getElementById('help-screen').classList.toggle('hidden');
+}
+
+// ---- press lane: judge nearest note in that lane ----
+function pressLane(lane){
+  lanePressed[lane] = true;
+  song.flashLane[lane] = 1.0;
+  if (!song.active || song.paused) return;
+  const cursor = audioCtx.currentTime - songStartCtxTime;
+  let best = null, bestDelta = Infinity;
+  for (const n of song.notes){
+    if (n.hit || n.missed) continue;
+    if (n.lane !== lane) continue;
+    const dt = (n.time - cursor) * 1000; // ms
+    if (Math.abs(dt) < Math.abs(bestDelta)){
+      best = n; bestDelta = dt;
+    }
+    if (n.time > cursor + 0.2) break; // notes are sorted; stop early
+  }
+  if (best){
+    const adt = Math.abs(bestDelta);
+    if (adt <= 35)  judge(best, 'perfect');
+    else if (adt <= 70)  judge(best, 'great');
+    else if (adt <= 110) judge(best, 'good');
+    else {
+      // stray press too far from any note → no penalty, but small visual
+      // (could deduct combo to be strict; we leave forgiving for casuals)
+      spawnJudgeText(lane, 'STRAY', 'good');
+    }
+  } else {
+    spawnJudgeText(lane, 'STRAY', 'good');
+  }
+  // small click sound
+  playNote({freq:880, type:'sine', dur:0.04, gain:0.08});
+}
+
+function judge(note, type){
+  note.hit = true;
+  note.judge = type;
+  let pts = 0;
+  if (type==='perfect'){ song.perfect++; pts = 300; }
+  else if (type==='great'){ song.great++; pts = 200; }
+  else if (type==='good'){ song.good++; pts = 100; }
+  else if (type==='miss'){ song.miss++; pts = 0; }
+
+  if (type==='miss'){
+    song.combo = 0;
+    song.multiplier = 1;
+  } else {
+    song.combo++;
+    if (song.combo > song.maxCombo) song.maxCombo = song.combo;
+    // multiplier ramps every 25 hits up to ×4
+    song.multiplier = Math.min(4, 1 + Math.floor(song.combo/25));
+  }
+  // difficulty mult
+  const diffMul = diffKey==='easy'?0.7 : diffKey==='normal'?1.0 : 1.5;
+  pts = Math.round(pts * song.multiplier * diffMul);
+  song.score += pts;
+
+  spawnJudgeText(note.lane, type.toUpperCase(), type, pts);
+  refreshHud();
+
+  // lane flash + particles
+  song.flashLane[note.lane] = Math.max(song.flashLane[note.lane], type==='perfect'?1.4:1.0);
+  spawnHitParticles(note.lane, type);
+}
+
+function spawnJudgeText(lane, text, cls, pts){
+  const el = document.createElement('div');
+  el.className = 'judge-pop ' + cls;
+  el.textContent = pts ? `${text}` : text;
+  // place near the strike line for that lane
+  const x = laneCenterX(lane);
+  const y = strikeLineY() - 30;
+  el.style.left = `${x}px`;
+  el.style.top  = `${y}px`;
+  el.style.transform = 'translateX(-50%)';
+  container.appendChild(el);
+  setTimeout(()=>el.remove(), 600);
+}
+
+// ---- particles (canvas) ----
+const particles = [];
+function spawnHitParticles(lane, type){
+  const x = laneCenterX(lane);
+  const y = strikeLineY();
+  const count = type==='perfect'?14 : type==='great'?9 : type==='good'?5 : 0;
+  const color = type==='perfect'?'#fde047' : type==='great'?'#22d3ee' : '#a78bfa';
+  for (let i=0;i<count;i++){
+    const a = Math.random()*Math.PI*2;
+    const s = Math.random()*3+1;
+    particles.push({
+      x, y, vx: Math.cos(a)*s, vy: Math.sin(a)*s - 1.5,
+      life: 30+Math.random()*15, max:45,
+      color, r: Math.random()*2+1.5,
+    });
+  }
+}
+function updateParticles(dt){
+  for (let i=particles.length-1;i>=0;i--){
+    const p = particles[i];
+    p.x += p.vx; p.y += p.vy;
+    p.vy += 0.12;
+    p.life--;
+    if (p.life<=0) particles.splice(i,1);
+  }
+}
+function renderParticles(){
+  for (const p of particles){
+    ctx.globalAlpha = p.life/p.max;
+    ctx.fillStyle = p.color;
+    ctx.shadowColor = p.color; ctx.shadowBlur = 6;
+    ctx.beginPath();
+    ctx.arc(p.x, p.y, p.r, 0, Math.PI*2);
+    ctx.fill();
+  }
+  ctx.shadowBlur = 0;
+  ctx.globalAlpha = 1;
+}
+
+// ---- update / render ----
+function laneWidth(){ return Math.min(120, viewW*0.18); }
+function lanesTotalWidth(){ return laneWidth() * 4; }
+function laneStartX(){ return (viewW - lanesTotalWidth())/2; }
+function laneCenterX(lane){ return laneStartX() + lane*laneWidth() + laneWidth()/2; }
+function strikeLineY(){ return viewH * 0.84; }
+
+function update(dt){
+  if (!song.active || song.paused) return;
+  const cursor = audioCtx.currentTime - songStartCtxTime;
+  // miss handling: any note past strike line by >130ms → miss
+  for (const n of song.notes){
+    if (n.hit || n.missed) continue;
+    if (cursor - n.time > 0.13){
+      n.missed = true;
+      judge(n, 'miss');
+    }
+  }
+  // schedule backing track
+  scheduleAhead();
+  // end check
+  if (cursor >= sched.totalSec + 0.5){
+    endSong();
+  }
+  // lane flashes decay
+  for (let i=0;i<4;i++) song.flashLane[i] = Math.max(0, song.flashLane[i] - dt*0.005);
+  // update particles
+  updateParticles(dt);
+  // hud
+  refreshHud();
+}
+
+function refreshHud(){
+  document.getElementById('score-val').textContent = song.score;
+  const key = `${trackKey}:${diffKey}`;
+  document.getElementById('best-val').textContent = meta.best[key] || 0;
+  document.getElementById('combo-val').textContent = song.combo;
+  document.getElementById('combo-sub').textContent = `×${song.multiplier} MULT`;
+  const total = song.notes.length || 1;
+  const hit = song.perfect+song.great+song.good;
+  const acc = total ? ((song.perfect*1.0 + song.great*0.85 + song.good*0.55) / total)*100 : 100;
+  document.getElementById('acc-val').textContent = acc.toFixed(1);
+  document.getElementById('acc-sub').textContent = `P:${song.perfect} G:${song.great} g:${song.good} M:${song.miss}`;
+  if (sched){
+    const cursor = (audioCtx.currentTime - songStartCtxTime);
+    const pct = Math.max(0, Math.min(1, cursor / sched.totalSec));
+    document.getElementById('prog-fill').style.width = (pct*100) + '%';
+    const sec = Math.max(0, Math.floor(cursor));
+    const mm = Math.floor(sec/60), ss = sec%60;
+    document.getElementById('prog-time').textContent = `${mm}:${ss.toString().padStart(2,'0')}`;
+  }
+}
+
+function render(){
+  ctx.clearRect(0,0,viewW,viewH);
+  // backdrop
+  drawBackdrop();
+  // lanes
+  drawLanes();
+  // notes
+  drawNotes();
+  // strike line
+  drawStrikeLine();
+  // particles
+  renderParticles();
+}
+
+function drawBackdrop(){
+  // moving gradient
+  const t = performance.now()*0.0002;
+  const g = ctx.createLinearGradient(0,0,0,viewH);
+  g.addColorStop(0,'#06030f');
+  g.addColorStop(0.5, `hsl(${260 + Math.sin(t)*20}, 60%, 8%)`);
+  g.addColorStop(1,'#06030f');
+  ctx.fillStyle = g;
+  ctx.fillRect(0,0,viewW,viewH);
+  // pulse rings emanating from center on beats
+  if (sched){
+    const cursor = audioCtx.currentTime - songStartCtxTime;
+    const beatSec = 60/sched.bpm;
+    const beatPos = (cursor/beatSec) % 1;
+    const intensity = 1 - beatPos; // pulse on each beat
+    const cx = viewW/2, cy = viewH*0.44;
+    for (let i=0;i<3;i++){
+      const r = 80 + i*60 + intensity*40;
+      const a = 0.15 * intensity * (1 - i*0.2);
+      ctx.strokeStyle = `rgba(167,139,250,${a})`;
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.arc(cx, cy, r, 0, Math.PI*2);
+      ctx.stroke();
+    }
+  }
+}
+
+function drawLanes(){
+  const lw = laneWidth();
+  const sx = laneStartX();
+  const colors = sched ? sched.color : ['#22d3ee','#a78bfa','#ff2bd6','#fde047'];
+  for (let i=0;i<4;i++){
+    const x = sx + i*lw;
+    // base lane bg (vertical gradient)
+    const g = ctx.createLinearGradient(0, 0, 0, viewH);
+    g.addColorStop(0, 'rgba(13,8,32,0.0)');
+    g.addColorStop(0.6, `${colors[i]}11`);
+    g.addColorStop(1, `${colors[i]}33`);
+    ctx.fillStyle = g;
+    ctx.fillRect(x, 0, lw, viewH);
+    // borders
+    ctx.fillStyle = colors[i] + '44';
+    ctx.fillRect(x, 0, 1, viewH);
+    if (i===3) ctx.fillRect(x+lw-1, 0, 1, viewH);
+
+    // flash overlay on press
+    if (song.flashLane[i] > 0){
+      ctx.save();
+      ctx.globalAlpha = Math.min(0.9, song.flashLane[i]);
+      ctx.fillStyle = colors[i];
+      ctx.fillRect(x, strikeLineY()-60, lw, 60);
+      ctx.restore();
+    }
+
+    // current pressed indicator
+    if (lanePressed[i]){
+      ctx.save();
+      ctx.globalAlpha = 0.25;
+      ctx.fillStyle = colors[i];
+      ctx.fillRect(x, 0, lw, viewH);
+      ctx.restore();
+    }
+
+    // key letter
+    ctx.fillStyle = colors[i];
+    ctx.font = "bold 20px 'Audiowide', sans-serif";
+    ctx.textAlign = 'center';
+    ctx.shadowColor = colors[i]; ctx.shadowBlur = 10;
+    ctx.fillText(LANE_KEYS[i], x + lw/2, strikeLineY() + 40);
+    ctx.shadowBlur = 0;
+  }
+}
+
+function drawStrikeLine(){
+  const y = strikeLineY();
+  const sx = laneStartX();
+  const w  = lanesTotalWidth();
+  // bar
+  const g = ctx.createLinearGradient(sx, y, sx+w, y);
+  g.addColorStop(0,'#22d3ee');
+  g.addColorStop(0.33,'#a78bfa');
+  g.addColorStop(0.66,'#ff2bd6');
+  g.addColorStop(1,'#fde047');
+  ctx.strokeStyle = g;
+  ctx.lineWidth = 3;
+  ctx.shadowColor = '#a78bfa'; ctx.shadowBlur = 14;
+  ctx.beginPath();
+  ctx.moveTo(sx, y); ctx.lineTo(sx+w, y);
+  ctx.stroke();
+  ctx.shadowBlur = 0;
+}
+
+function drawNotes(){
+  if (!sched) return;
+  const cursor = audioCtx.currentTime - songStartCtxTime;
+  const sy = strikeLineY();
+  const lw = laneWidth();
+  const sx = laneStartX();
+  const colors = sched.color;
+  // distance per second: full canvas height in song.scrollTime
+  for (const n of song.notes){
+    if (n.hit) continue;
+    const dt = n.time - cursor;
+    if (dt < -0.2) continue; // missed and gone
+    if (dt > song.scrollTime + 0.2) break; // sorted, can stop
+    const yPct = 1 - (dt / song.scrollTime); // 0 = top, 1 = strike
+    if (yPct < -0.05) continue;
+    const y = yPct * sy;
+    const x = sx + n.lane*lw + lw/2;
+    // note glyph
+    const w = lw*0.8, h = 18;
+    const grad = ctx.createLinearGradient(x-w/2, y-h/2, x+w/2, y+h/2);
+    grad.addColorStop(0, '#fff');
+    grad.addColorStop(1, colors[n.lane]);
+    ctx.fillStyle = grad;
+    ctx.shadowColor = colors[n.lane]; ctx.shadowBlur = 14;
+    roundRect(ctx, x-w/2, y-h/2, w, h, 5, true, false);
+    ctx.shadowBlur = 0;
+    // inner stripe
+    ctx.fillStyle = 'rgba(255,255,255,0.35)';
+    ctx.fillRect(x-w/2+4, y-h/2+3, w-8, 3);
+    // missed (still visible briefly with red tint)
+    if (n.missed){
+      ctx.save();
+      ctx.globalAlpha = 0.35;
+      ctx.fillStyle = '#ef4444';
+      roundRect(ctx, x-w/2, y-h/2, w, h, 5, true, false);
+      ctx.restore();
+    }
+  }
+}
+
+function roundRect(ctx, x, y, w, h, r, fill, stroke){
+  ctx.beginPath();
+  ctx.moveTo(x+r, y);
+  ctx.lineTo(x+w-r, y);
+  ctx.quadraticCurveTo(x+w, y, x+w, y+r);
+  ctx.lineTo(x+w, y+h-r);
+  ctx.quadraticCurveTo(x+w, y+h, x+w-r, y+h);
+  ctx.lineTo(x+r, y+h);
+  ctx.quadraticCurveTo(x, y+h, x, y+h-r);
+  ctx.lineTo(x, y+r);
+  ctx.quadraticCurveTo(x, y, x+r, y);
+  ctx.closePath();
+  if (fill) ctx.fill();
+  if (stroke) ctx.stroke();
+}
+
+// toast
+let toastTimer = null;
+function showToast(msg){
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.classList.add('show');
+  if (toastTimer) clearTimeout(toastTimer);
+  toastTimer = setTimeout(()=>el.classList.remove('show'), 1700);
+}
+
+// loop
+let lastTime=0;
+const MAX_DT=50;
+function loop(ts){
+  const raw = ts-lastTime;
+  const dt = Math.min(raw, MAX_DT);
+  lastTime = ts;
+  update(dt);
+  render();
+  requestAnimationFrame(loop);
+}
+refreshHud();
+requestAnimationFrame(t=>{lastTime=t; loop(t);});
+
+// =======================================================
+// KLEVER WALLET
+// =======================================================
+let walletAddr=null, walletProvider=null;
+async function connectWallet(){
+  const pill = document.getElementById('wallet-pill');
+  const txt  = document.getElementById('wallet-text');
+  if (walletAddr){
+    walletAddr=null; walletProvider=null;
+    pill.classList.remove('connected');
+    txt.textContent='CONNECT KLEVER';
+    showToast('WALLET DISCONNECTED');
+    return;
+  }
+  txt.textContent='CONNECTING…';
+  try{
+    let address=null;
+    if (window.klever && typeof window.klever.request==='function'){
+      const res = await window.klever.request({method:'klv_requestAccounts'});
+      address = Array.isArray(res)?res[0]:(res?.address||res?.accounts?.[0]);
+      walletProvider='extension';
+    } else if (window.kleverWeb){
+      try{ if (typeof window.kleverWeb.initialize==='function') await window.kleverWeb.initialize(); }catch(e){}
+      address = window.kleverWeb.getWalletAddress?.() || window.kleverWeb.address;
+      walletProvider='k5';
+    } else throw new Error('no provider');
+    if (!address) throw new Error('no address');
+    walletAddr = address;
+    pill.classList.add('connected');
+    txt.textContent = address.slice(0,6)+'…'+address.slice(-4);
+    showToast('WALLET CONNECTED');
+  } catch(e){
+    txt.textContent='CONNECT KLEVER';
+    showToast('CONNECT FAILED');
+  }
+}
+</script>
+</body>
+</html>
