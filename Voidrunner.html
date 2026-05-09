@@ -2,8 +2,10 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8" />
+<meta name="oasis-activity-api" content="">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
 <title>Voidrunner | Oasis</title>
+<!-- Pixel-art FX from Super Pixel Effects Gigapack — Will Tice / unTied Games -->
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Audiowide&family=Rajdhani:wght@500;600;700&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
@@ -162,7 +164,7 @@
     </a>
     <span class="divider"></span>
     <span class="game-title">VOID<span class="accent">RUNNER</span></span>
-    <span class="version-badge">v1.0</span>
+    <span class="version-badge">v1.2</span>
   </div>
   <div class="right">
     <button id="wallet-pill" class="wallet-pill" onclick="connectWallet()">
@@ -384,6 +386,51 @@ const player = {
 const playerBullets = [];
 const enemyBullets = [];
 const enemies = [];
+const spriteEffects = []; // pixel-art FX (Super Pixel Effects Gigapack — Will Tice / unTied Games)
+
+/* === SPRITE FX PIPELINE === */
+const SPRITES = {
+  spark:         { src: 'assets/voidrunner/spark_yellow.png',         fw: 32, fh: 32, frames: 12, dur: 30 },
+  impact:        { src: 'assets/voidrunner/impact_yellow.png',        fw: 32, fh: 32, frames: 10, dur: 30 },
+  impactBlue:    { src: 'assets/voidrunner/impact_directional.png',   fw: 32, fh: 32, frames: 10, dur: 30 },
+  explosion:     { src: 'assets/voidrunner/explosion_orange.png',     fw: 32, fh: 32, frames: 14, dur: 35 },
+  explosionEpic: { src: 'assets/voidrunner/explosion_epic.png',       fw: 96, fh: 96, frames: 14, dur: 50 },
+};
+Object.values(SPRITES).forEach(s => {
+  const img = new Image();
+  img.onload = () => { s.frames = Math.max(1, Math.floor(img.naturalWidth / s.fw)); s.img = img; s.loaded = true; };
+  img.onerror = () => { s.failed = true; };
+  img.src = s.src;
+  s.img = img;
+});
+function spawnSpriteEffect(x, y, kind, opts = {}) {
+  const def = SPRITES[kind]; if (!def) return;
+  spriteEffects.push({ x, y, def, frame: 0, t: 0,
+    scale: opts.scale || 1.5,
+    rot: opts.rot != null ? opts.rot : Math.random() * Math.PI * 2 });
+}
+function updateSpriteEffects(dt) {
+  for (let i = spriteEffects.length - 1; i >= 0; i--) {
+    const e = spriteEffects[i];
+    e.t += dt;
+    if (e.t >= e.def.dur) { e.t -= e.def.dur; e.frame++; if (e.frame >= e.def.frames) spriteEffects.splice(i, 1); }
+  }
+}
+function renderSpriteEffects() {
+  const prev = ctx.globalCompositeOperation;
+  for (const e of spriteEffects) {
+    if (!e.def.loaded) continue;
+    const { img, fw, fh } = e.def;
+    ctx.save();
+    ctx.globalCompositeOperation = 'lighter';
+    ctx.translate(e.x, e.y);
+    if (e.rot) ctx.rotate(e.rot);
+    const dw = fw * e.scale, dh = fh * e.scale;
+    ctx.drawImage(img, e.frame * fw, 0, fw, fh, -dw / 2, -dh / 2, dw, dh);
+    ctx.restore();
+  }
+  ctx.globalCompositeOperation = prev;
+}
 const pickups = [];
 const particles = [];
 const stars = [];
@@ -538,7 +585,7 @@ function rollStageWaves(){
   // returns spawn schedule for current stage
   const stage = run.stage;
   const waves = [];
-  const baseCount = 8 + stage*2;
+  const baseCount = 6 + stage*2;
   // wave 1: grunts in line
   for (let i=0;i<baseCount;i++){
     waves.push({delay: i*220, kind:'grunt', x: (i%5+0.5)*(viewW/5)});
@@ -581,6 +628,7 @@ beginStage(); // initialize so first run loads with schedule (won't tick until s
 // ============ UPDATE ============
 function update(dt){
   if (!run.active || run.paused || run.ended) return;
+  updateSpriteEffects(dt * 1000);
   // input
   let ix=0, iy=0;
   if (keys.KeyA||keys.ArrowLeft) ix-=1;
@@ -695,6 +743,7 @@ function update(dt){
           e.hp -= b.dmg;
           e.flash = 4;
           spawnParticles(b.x, b.y, 3, '#fde047');
+          spawnSpriteEffect(b.x, b.y, 'impactBlue', { scale: 1.0 });
           if (!b.pierce){ playerBullets.splice(i,1); }
           if (e.hp <= 0){
             killEnemy(j);
@@ -818,6 +867,10 @@ function spawnEBullet(x,y,vx,vy,color){
 function killEnemy(i){
   const e = enemies[i];
   spawnParticles(e.x, e.y, 14, e.color);
+  // pixel-art explosion; bigger for boss
+  const big = e.kind === 'boss';
+  spawnSpriteEffect(e.x, e.y, big ? 'explosionEpic' : 'explosion', { scale: big ? 1.4 : 1.6 });
+  if (big) spawnSpriteEffect(e.x, e.y, 'spark', { scale: 2.4 });
   // score
   const base = e.kind==='boss'?500 : e.kind==='turret'?80 : e.kind==='spirit'?60 : e.kind==='strafer'?50 : 30;
   run.combo = Math.min(8, run.combo + 0.10);
@@ -991,6 +1044,8 @@ function render(){
   }
   ctx.shadowBlur = 0;
   ctx.globalAlpha = 1;
+  // pixel-art FX (impacts, sparks, explosions)
+  renderSpriteEffects();
   // enemies
   for (const e of enemies){ drawEnemy(e); }
   // boss
@@ -1218,6 +1273,21 @@ async function connectWallet(){
     showToast('CONNECT FAILED');
   }
 }
+</script>
+
+<!-- Oasis cross-game activity hook (auto-injected) -->
+<script src="oasis-activity.js"></script>
+<script>
+  (function () {
+    var GAME = 'voidrunner';
+    try { if (window.recordActivity) window.recordActivity(GAME, 'started'); } catch (e) {}
+    window.addEventListener('oasis:activity', function (e) {
+      try {
+        if (!window.recordActivity || !e || !e.detail || !e.detail.type) return;
+        window.recordActivity(GAME, e.detail.type, e.detail);
+      } catch (err) {}
+    });
+  })();
 </script>
 </body>
 </html>

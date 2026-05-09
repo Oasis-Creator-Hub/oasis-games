@@ -2,8 +2,10 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8" />
+<meta name="oasis-activity-api" content="">
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>Tower Sigil | Oasis</title>
+<!-- Pixel-art FX from Super Pixel Effects Gigapack — Will Tice / unTied Games -->
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@600;800&family=Rajdhani:wght@500;600;700&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
@@ -362,7 +364,7 @@
     </a>
     <span class="divider"></span>
     <span class="game-title">TOWER <span class="accent">SIGIL</span></span>
-    <span class="version-badge">v1.0</span>
+    <span class="version-badge">v1.1</span>
   </div>
   <div class="right">
     <button id="wallet-pill" class="wallet-pill" onclick="connectWallet()">
@@ -630,6 +632,52 @@ const grid = {};   // key "c,r" → tower
 const enemies = [];
 const projectiles = [];
 const particles = [];
+const spriteEffects = []; // pixel-art FX (Super Pixel Effects Gigapack — Will Tice / unTied Games)
+
+/* === SPRITE FX PIPELINE === */
+const SPRITES = {
+  spark:         { src: 'assets/tower-sigil/spark_yellow.png',         fw: 32, fh: 32, frames: 12, dur: 30 },
+  impact:        { src: 'assets/tower-sigil/impact_yellow.png',        fw: 32, fh: 32, frames: 10, dur: 30 },
+  impactBlue:    { src: 'assets/tower-sigil/impact_directional.png',   fw: 32, fh: 32, frames: 10, dur: 30 },
+  explosion:     { src: 'assets/tower-sigil/explosion_orange.png',     fw: 32, fh: 32, frames: 14, dur: 35 },
+  explosionEpic: { src: 'assets/tower-sigil/explosion_epic.png',       fw: 96, fh: 96, frames: 14, dur: 50 },
+};
+Object.values(SPRITES).forEach(s => {
+  const img = new Image();
+  img.onload = () => { s.frames = Math.max(1, Math.floor(img.naturalWidth / s.fw)); s.img = img; s.loaded = true; };
+  img.onerror = () => { s.failed = true; };
+  img.src = s.src;
+  s.img = img;
+});
+function spawnSpriteEffect(x, y, kind, opts = {}) {
+  const def = SPRITES[kind]; if (!def) return;
+  spriteEffects.push({ x, y, def, frame: 0, t: 0,
+    scale: opts.scale || 1.5,
+    rot: opts.rot != null ? opts.rot : Math.random() * Math.PI * 2 });
+}
+function updateSpriteEffects(dt) {
+  for (let i = spriteEffects.length - 1; i >= 0; i--) {
+    const e = spriteEffects[i];
+    e.t += dt;
+    if (e.t >= e.def.dur) { e.t -= e.def.dur; e.frame++; if (e.frame >= e.def.frames) spriteEffects.splice(i, 1); }
+  }
+}
+function renderSpriteEffects(_ctx) {
+  const c = _ctx || ctx;
+  const prev = c.globalCompositeOperation;
+  for (const e of spriteEffects) {
+    if (!e.def.loaded) continue;
+    const { img, fw, fh } = e.def;
+    c.save();
+    c.globalCompositeOperation = 'lighter';
+    c.translate(e.x, e.y);
+    if (e.rot) c.rotate(e.rot);
+    const dw = fw * e.scale, dh = fh * e.scale;
+    c.drawImage(img, e.frame * fw, 0, fw, fh, -dw / 2, -dh / 2, dw, dh);
+    c.restore();
+  }
+  c.globalCompositeOperation = prev;
+}
 const game = {
   active:false, paused:false, ended:false,
   hp:20, maxHp:20, gold:100,
@@ -983,6 +1031,8 @@ function setSpeed(s){
 // =========== UPDATE ===========
 function update(dt){
   const d = dt * game.speed;
+  // sprite-effect frames advance with game speed
+  updateSpriteEffects(d * 1000);
   // wave spawning
   if (game.inWave){
     game.spawnTimer -= d;
@@ -1234,6 +1284,8 @@ function damageEnemy(e, dmg, crit, color){
   spawnFloatNum(e.x, e.y, dmg, crit?'crit':'');
   // sparks
   for (let i=0;i<3;i++) spawnSpark(e.x, e.y, color||'#fff');
+  // pixel-art impact sprite on hit
+  spawnSpriteEffect(e.x, e.y, crit ? 'spark' : 'impactBlue', { scale: crit ? 1.4 : 1.0 });
   if (e.hp <= 0){
     const idx = enemies.indexOf(e);
     if (idx>=0) killEnemy(idx);
@@ -1249,6 +1301,10 @@ function killEnemy(i){
   game.killsThisRun++;
   spawnFloatNum(e.x, e.y-12, `+${bounty}g`, 'heal');
   for (let k=0;k<10;k++) spawnSpark(e.x, e.y, e.color);
+  // pixel-art explosion on enemy death; bigger for boss-style enemies
+  const big = e.bounty > 50 || e.maxHp > 100;
+  spawnSpriteEffect(e.x, e.y, big ? 'explosionEpic' : 'explosion', { scale: big ? 1.2 : 1.6 });
+  if (big) spawnSpriteEffect(e.x, e.y, 'spark', { scale: 2.2 });
   enemies.splice(i,1);
   sfx.enemy_die();
   refreshHud();
@@ -1407,6 +1463,7 @@ function render(){
   drawProjectiles();
   drawBolts();
   drawParticles();
+  renderSpriteEffects(ctx); // pixel-art FX (impacts, sparks, explosions)
   drawHover();
 
   ctx.restore();
@@ -1781,6 +1838,21 @@ async function connectWallet(){
     showToast('CONNECT FAILED');
   }
 }
+</script>
+
+<!-- Oasis cross-game activity hook (auto-injected) -->
+<script src="oasis-activity.js"></script>
+<script>
+  (function () {
+    var GAME = 'tower-sigil';
+    try { if (window.recordActivity) window.recordActivity(GAME, 'started'); } catch (e) {}
+    window.addEventListener('oasis:activity', function (e) {
+      try {
+        if (!window.recordActivity || !e || !e.detail || !e.detail.type) return;
+        window.recordActivity(GAME, e.detail.type, e.detail);
+      } catch (err) {}
+    });
+  })();
 </script>
 </body>
 </html>

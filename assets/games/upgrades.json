@@ -1,0 +1,127 @@
+{
+  "_meta": {
+    "version": 1,
+    "currency": "KLV",
+    "notes": "Per-game upgrade catalog. Costs are display KLV (not 1e6 base units). Keep in sync with the embedded copy in functions/api/upgrade.js."
+  },
+
+  "klever-rise": [
+    { "id": "pack_common",   "label": "Common Card Pack",    "cost": 25,  "desc": "3 cards, common odds." },
+    { "id": "pack_rare",     "label": "Rare Card Pack",      "cost": 75,  "desc": "3 cards, guaranteed rare." },
+    { "id": "pack_legend",   "label": "Legendary Pack",      "cost": 250, "desc": "3 cards, guaranteed legendary." },
+    { "id": "deck_slot",     "label": "Extra Deck Slot",     "cost": 50,  "desc": "Permanent extra deck slot." }
+  ],
+  "shadow-realms": [
+    { "id": "potion_heal",   "label": "Healing Potion",      "cost": 10,  "desc": "+25 HP next room." },
+    { "id": "ability_surge", "label": "Power Surge Scroll",  "cost": 30,  "desc": "Unlock Power Surge ability." },
+    { "id": "torch",         "label": "Torch of Foresight",  "cost": 50,  "desc": "Reveal next 2 rooms." }
+  ],
+  "klever-quest": [
+    { "id": "relic_atk",     "label": "Storm Rune",          "cost": 40,  "desc": "+12 ATK relic." },
+    { "id": "relic_def",     "label": "Stone Aegis",         "cost": 40,  "desc": "+10 DEF relic." },
+    { "id": "relic_legend",  "label": "Crown Jewel",         "cost": 120, "desc": "+20 magic legendary relic." }
+  ],
+  "chainbound": [
+    { "id": "hero_rare",     "label": "Recruit Rare Hero",   "cost": 100, "desc": "Unlock Shadow Rogue / Mage." },
+    { "id": "hero_epic",     "label": "Recruit Holy Paladin","cost": 350, "desc": "Tank epic." },
+    { "id": "hero_legend",   "label": "Recruit War Dragon",  "cost": 750, "desc": "Legendary hero unlock." }
+  ],
+  "klever-slots": [
+    { "id": "lucky_charm_2x","label": "Lucky Charm (2× 24h)","cost": 100, "desc": "Doubles all wins for 24h." },
+    { "id": "vip_spins_10",  "label": "VIP Free Spins x10",  "cost": 50,  "desc": "10 free spins, no wager." }
+  ],
+  "crypto-flip": [
+    { "id": "lucky_charm_2x","label": "Lucky Charm (2× 24h)","cost": 100, "desc": "Doubles wins for 24h." },
+    { "id": "second_chance", "label": "Second-Chance Token", "cost": 25,  "desc": "Re-flip on a single loss." }
+  ],
+  "klever-lotto": [
+    { "id": "ticket_bundle", "label": "5-Ticket Bundle",     "cost": 100, "desc": "5 tickets at 25 KLV value." },
+    { "id": "season_pass",   "label": "Season Lotto Pass",   "cost": 500, "desc": "Auto-enter every weekly draw." }
+  ],
+  "crypto-cmd": [
+    { "id": "city_upgrade",  "label": "Capital Upgrade",     "cost": 75,  "desc": "+50% capital production." },
+    { "id": "fleet_drone",   "label": "Drone Fleet",         "cost": 200, "desc": "+1 movement to all fleets." }
+  ],
+  "guild-wars": [
+    { "id": "guild_train",   "label": "Guild Training",      "cost": 50,  "desc": "+15 power instantly." },
+    { "id": "guild_fortify", "label": "Guild Fortifications","cost": 80,  "desc": "+25 defense per battle." },
+    { "id": "guild_charter", "label": "Royal Charter",       "cost": 250, "desc": "+1 free Tax action / day." }
+  ],
+  "klever-city": [
+    { "id": "blueprint_factory", "label": "Factory Blueprint", "cost": 50,  "desc": "Unlock Factory build." },
+    { "id": "blueprint_bank",    "label": "Bank Blueprint",    "cost": 100, "desc": "Unlock Bank (passive KLV)." },
+    { "id": "blueprint_stadium", "label": "Stadium Blueprint", "cost": 250, "desc": "Unlock Stadium (huge pop)." }
+  ],
+  "klever-drift": [
+    { "id": "nitro_pack_3",  "label": "Nitro Pack ×3",       "cost": 30,  "desc": "3 nitro boosts." },
+    { "id": "tires_slick",   "label": "Slick Tire Set",      "cost": 60,  "desc": "+10% top speed." },
+    { "id": "engine_v2",     "label": "Engine Upgrade V2",   "cost": 150, "desc": "+25% acceleration." }
+  ],
+  "mech-mayhem": [
+    { "id": "weapon_railgun","label": "Railgun Mod",         "cost": 80,  "desc": "Unlock Railgun weapon." },
+    { "id": "armor_phase",   "label": "Phase Armor",         "cost": 150, "desc": "+30% defense chassis." },
+    { "id": "core_legendary","label": "Quantum Core",        "cost": 400, "desc": "Legendary mech core." }
+  ],
+  "hypergrid": [
+    { "id": "boost_pack_5",  "label": "Boost Pack ×5",       "cost": 40,  "desc": "5 race boosts." },
+    { "id": "ship_skin_neon","label": "Neon Ship Skin",      "cost": 75,  "desc": "Cosmetic skin (NFT)." },
+    { "id": "tournament_seed","label":"Tournament Seed",     "cost": 200, "desc": "Higher seed in next tourney." }
+  ],
+  "crypto-cross": [
+    { "id": "hint_pack_5",   "label": "Hint Pack ×5",        "cost": 15,  "desc": "5 letter hints." },
+    { "id": "daily_skip",    "label": "Daily Skip Token",    "cost": 30,  "desc": "Skip current puzzle, keep streak." }
+  ],
+  "klever-match": [
+    { "id": "moves_plus_5",  "label": "+5 Moves",            "cost": 10,  "desc": "5 extra moves this round." },
+    { "id": "shuffle",       "label": "Board Shuffle",       "cost": 20,  "desc": "Shuffle the board once." },
+    { "id": "color_bomb",    "label": "Color Bomb",          "cost": 35,  "desc": "Clears one color." }
+  ],
+  "hash-maze": [
+    { "id": "compass",       "label": "Path Compass",        "cost": 25,  "desc": "Reveals direction to exit." },
+    { "id": "map_partial",   "label": "Partial Map",         "cost": 50,  "desc": "Reveals 25% of maze." }
+  ],
+  "klever-kick": [
+    { "id": "scout_premium", "label": "Premium Scout",       "cost": 100, "desc": "Unlock premium players." },
+    { "id": "stadium_v2",    "label": "Stadium Upgrade",     "cost": 250, "desc": "+10% home advantage." }
+  ],
+  "blockball": [
+    { "id": "lucky_charm_2x","label": "Lucky Charm (2× 24h)","cost": 100, "desc": "Doubles wins for 24h." },
+    { "id": "ref_token",     "label": "Friendly Ref Token",  "cost": 25,  "desc": "Re-roll one missed shot." }
+  ],
+  "klever-league": [
+    { "id": "draft_pick_premium", "label": "Premium Draft Pick", "cost": 75,  "desc": "Top-tier player." },
+    { "id": "season_pass",        "label": "Season Pass",        "cost": 300, "desc": "Auto-enter all seasons." }
+  ],
+  "gangstacraft": [
+    { "id": "muscle_pack",   "label": "Muscle Pack",         "cost": 50,  "desc": "+5 enforcers." },
+    { "id": "racket_v2",     "label": "Racket Upgrade",      "cost": 120, "desc": "+25% territory income." },
+    { "id": "boss_consigliere","label":"Consigliere",        "cost": 300, "desc": "Unlock Consigliere." }
+  ],
+  "klever-world": [
+    { "id": "land_plain",    "label": "Plains Plot",         "cost": 25,  "desc": "+1 KLV / 10s plot." },
+    { "id": "land_forest",   "label": "Forest Plot",         "cost": 60,  "desc": "+3 KLV / 10s plot." },
+    { "id": "land_castle",   "label": "Castle Plot",         "cost": 200, "desc": "+10 KLV / 10s plot." },
+    { "id": "deco_fountain", "label": "Fountain Decoration", "cost": 40,  "desc": "Cosmetic + happiness." }
+  ],
+  "klever-pets": [
+    { "id": "feed",          "label": "Premium Feed",        "cost": 5,   "desc": "+15 happiness." },
+    { "id": "train_str",     "label": "Strength Training",   "cost": 20,  "desc": "+2 STR." },
+    { "id": "train_agi",     "label": "Agility Training",    "cost": 20,  "desc": "+2 AGI." },
+    { "id": "train_vit",     "label": "Vitality Training",   "cost": 20,  "desc": "+2 VIT." },
+    { "id": "evolve",        "label": "Evolution Stone",     "cost": 100, "desc": "Unlock evolved form." }
+  ],
+  "klever-dungeon": [
+    { "id": "scroll_pack_3", "label": "Scroll Pack ×3",      "cost": 30,  "desc": "3 random AI story NFTs." },
+    { "id": "rerun_token",   "label": "Re-roll Choice",      "cost": 10,  "desc": "Re-roll a single AI branch." }
+  ],
+  "harvest-chain": [
+    { "id": "tool_fertilizer","label": "Fertilizer",         "cost": 40,  "desc": "+30% crop yield." },
+    { "id": "tool_irrigation","label": "Irrigation",         "cost": 60,  "desc": "−1 turn growing time." },
+    { "id": "tool_combine",   "label": "Combine Harvester",  "cost": 150, "desc": "Auto-harvest all ready fields." }
+  ],
+  "spaceforge": [
+    { "id": "module_drill",   "label": "Mining Drill",       "cost": 100, "desc": "+10 ore / week." },
+    { "id": "module_refinery","label": "Refinery",           "cost": 200, "desc": "+15 KLV / week." },
+    { "id": "module_hangar",  "label": "Hangar Bay",         "cost": 300, "desc": "+20 ore +25 KLV / week." }
+  ]
+}

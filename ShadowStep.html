@@ -2,6 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8" />
+<meta name="oasis-activity-api" content="">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
 <title>Shadow Step | Oasis</title>
 <!-- Pixel-art FX from Super Pixel Effects Gigapack — Will Tice / unTied Games -->
@@ -3792,6 +3793,21 @@ updateHUD();
 updateWalletPill();
 requestAnimationFrame(t => { lastTime = t; gameLoop(t); });
 
+</script>
+
+<!-- Oasis cross-game activity hook (auto-injected) -->
+<script src="oasis-activity.js"></script>
+<script>
+  (function () {
+    var GAME = 'shadowstep';
+    try { if (window.recordActivity) window.recordActivity(GAME, 'started'); } catch (e) {}
+    window.addEventListener('oasis:activity', function (e) {
+      try {
+        if (!window.recordActivity || !e || !e.detail || !e.detail.type) return;
+        window.recordActivity(GAME, e.detail.type, e.detail);
+      } catch (err) {}
+    });
+  })();
 </script>
 </body>
 </html>

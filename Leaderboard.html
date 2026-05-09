@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1">
+<title>VIP Leaderboard · Oasis</title>
+<link rel="stylesheet" href="/assets/oasis-shell.css">
+<link rel="stylesheet" href="/assets/klever-controller.css">
+<link href="https://fonts.googleapis.com/css2?family=Cinzel+Decorative:wght@700;900&family=Cinzel:wght@400;600;700&family=Rajdhani:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+  body{background:var(--bg);color:var(--br);}
+  .lb-wrap{max-width:920px;margin:30px auto;padding:0 18px;}
+  .lb-card{background:rgba(15,20,25,.85);border:1px solid #2a3540;border-radius:14px;padding:24px 26px;}
+  .lb-title{font-family:'Cinzel Decorative',serif;color:#ffd700;letter-spacing:.12em;margin:0 0 4px;font-size:1.5rem;}
+  .lb-sub{color:var(--muted);font-size:.85rem;margin-bottom:18px;}
+  table.lb-table{width:100%;border-collapse:collapse;font-family:Rajdhani,sans-serif;}
+  .lb-table th{text-align:left;border-bottom:1px solid #2a3540;padding:10px 8px;color:#cfd8dc;font-size:.82rem;letter-spacing:.07em;text-transform:uppercase;}
+  .lb-table td{padding:10px 8px;border-bottom:1px solid rgba(42,53,64,.4);font-size:.95rem;}
+  .lb-table tr:hover td{background:rgba(255,255,255,.02);}
+  .lb-table .rank-1 td{color:#ffd700;font-weight:700;}
+  .lb-table .me{background:#1a3a5a !important;}
+  .empty{padding:36px;text-align:center;color:var(--muted);}
+  .vip-nav-link{font-family:'Cinzel',serif;color:#ffd700;text-decoration:none;}
+</style>
+</head>
+<body>
+<canvas id="bgC"></canvas>
+<canvas id="fxC"></canvas>
+<div class="tt" id="tt"></div>
+
+<header class="oasis-shell-header oh-nav">
+  <div class="oh-nav-left">
+    <a class="back oh-back" href="/">◀ Hub</a>
+    <h1 class="game-title oh-title">VIP LEADERBOARD</h1>
+  </div>
+  <div class="oh-nav-right">
+    <div id="kc-pill" class="kc-pill"></div>
+    <div id="vip-pill" class="vip-pill"></div>
+  </div>
+</header>
+
+<main class="oh-stage">
+  <div class="lb-wrap">
+    <div class="lb-card">
+      <h2 class="lb-title">GLOBAL VIP STANDINGS</h2>
+      <div class="lb-sub">Total KLV spent on Oasis upgrades. Refreshes every 60s. <span id="lb-updated"></span></div>
+      <div id="lb-table"><div class="empty">Loading…</div></div>
+    </div>
+  </div>
+</main>
+
+<script src="/assets/oasis-game-runtime.js"></script>
+<script src="/assets/klever-controller.js"></script>
+<script>
+KleverController.init({ gameId: 'leaderboard' });
+KleverController.mountConnectPill(document.getElementById('kc-pill'));
+KleverController.mountVipBadge(document.getElementById('vip-pill'));
+
+async function loadLeaderboard(limit){
+  const lb = await KleverController.leaderboard(limit || 100);
+  render(lb);
+}
+function render(lb){
+  const me = (KleverController.address || '').toLowerCase();
+  const root = document.getElementById('lb-table');
+  if (!lb.entries || !lb.entries.length){
+    root.innerHTML = '<div class="empty">Leaderboard warming up — be the first to upgrade.</div>';
+    return;
+  }
+  let html = '<table class="lb-table"><thead><tr><th>Rank</th><th>Player</th><th>Tier</th><th>Level</th><th>KLV Spent</th></tr></thead><tbody>';
+  for (const e of lb.entries){
+    const isMe = e.address && e.address.toLowerCase() === me ? ' me' : '';
+    const rankCls = 'rank-' + e.rank;
+    const tier = e.tier || {};
+    html += '<tr class="'+rankCls+isMe+'">'
+      + '<td>'+e.rank+'</td>'
+      + '<td><code>'+e.addressShort+'</code></td>'
+      + '<td style="color:'+(tier.color||'#fff')+'">'+(tier.glyph||'')+' '+(tier.name||'')+'</td>'
+      + '<td>'+e.level+'</td>'
+      + '<td>'+(e.totalSpent||0).toLocaleString()+'</td>'
+      + '</tr>';
+  }
+  html += '</tbody></table>';
+  root.innerHTML = html;
+  if (lb.updatedAt){
+    document.getElementById('lb-updated').textContent = '· updated ' + new Date(lb.updatedAt).toLocaleTimeString();
+  }
+}
+loadLeaderboard(100);
+setInterval(()=>loadLeaderboard(100), 60000);
+document.addEventListener('klever:connected', ()=>loadLeaderboard(100));
+</script>
+</body>
+</html>

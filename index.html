@@ -2,6 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8" />
+<meta name="oasis-activity-api" content="">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
 <title>Oasis · Metaverse Games on KleverChain</title>
 <meta name="description" content="A growing collection of action games on KleverChain. Play, earn, trade, and stake — all from one wallet." />
@@ -10,6 +11,9 @@
 <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
 <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
 <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+
+<!-- Oasis cross-game activity log (same-origin localStorage + BroadcastChannel) -->
+<script src="oasis-activity.js"></script>
 
 <!-- Open-source fonts only -->
 <link rel="preconnect" href="https://fonts.googleapis.com" />
@@ -709,6 +713,7 @@ section.app-section {
 </style>
 </head>
 <body>
+<a href="/Leaderboard.html" class="vip-nav-link" style="position:fixed;top:14px;right:18px;z-index:9999;font-family:'Cinzel',serif;font-size:.78rem;letter-spacing:.16em;color:#ffd700;text-decoration:none;background:rgba(15,20,25,.78);border:1px solid rgba(255,215,0,.42);padding:6px 14px;border-radius:999px;backdrop-filter:blur(8px);">★ VIP</a>
 <div id="root">
   <div style="min-height:100vh;display:flex;align-items:center;justify-content:center;color:#94a3b8;letter-spacing:0.3em;font-family:'Rajdhani',sans-serif;">LOADING OASIS…</div>
 </div>
@@ -733,6 +738,19 @@ const TOKENS = [
   { id: 'OASIS-NEON',  name: 'Neon Mile',    color: '#ff2bd6', glyph: 'N', priceUsd: 0.0019, decimals: 6 },
   { id: 'OASIS-SIGIL', name: 'Sigil Mark',   color: '#f59e0b', glyph: 'Σ', priceUsd: 0.0024, decimals: 6 },
   { id: 'OASIS-PULSE', name: 'Pulse Beat',   color: '#a78bfa', glyph: '♪', priceUsd: 0.0021, decimals: 6 },
+  { id: 'OASIS-SALVO', name: 'Salvage Bit',  color: '#fbbf24', glyph: 'Σ', priceUsd: 0.0014, decimals: 6 },
+  { id: 'OASIS-VOID',  name: 'Void Spark',   color: '#ff2bd6', glyph: 'V', priceUsd: 0.0026, decimals: 6 },
+  { id: 'OASIS-MINE',  name: 'Forge Dust',   color: '#f59e0b', glyph: 'M', priceUsd: 0.0018, decimals: 6 },
+  { id: 'OASIS-SNAKE', name: 'Glyph Scale',  color: '#22c55e', glyph: 'S', priceUsd: 0.0011, decimals: 6 },
+  { id: 'OASIS-BRICK', name: 'Brick Shard',  color: '#ef4444', glyph: 'B', priceUsd: 0.0013, decimals: 6 },
+  { id: 'OASIS-MEMO',  name: 'Vault Plate',  color: '#a78bfa', glyph: 'V', priceUsd: 0.0017, decimals: 6 },
+  { id: 'OASIS-FLEX',  name: 'Reflex Bit',   color: '#22d3ee', glyph: 'R', priceUsd: 0.0012, decimals: 6 },
+  { id: 'OASIS-STACK', name: 'Tower Coin',   color: '#a78bfa', glyph: 'T', priceUsd: 0.0015, decimals: 6 },
+  { id: 'OASIS-WORD',  name: 'Word Mark',    color: '#fbbf24', glyph: 'W', priceUsd: 0.0023, decimals: 6 },
+  { id: 'OASIS-ASTER', name: 'Aster Dust',   color: '#22d3ee', glyph: 'A', priceUsd: 0.0014, decimals: 6 },
+  { id: 'OASIS-FALL',  name: 'Falling Stone',color: '#a78bfa', glyph: 'F', priceUsd: 0.0016, decimals: 6 },
+  { id: 'OASIS-PIN',   name: 'Pin Shard',    color: '#fbbf24', glyph: 'P', priceUsd: 0.0015, decimals: 6 },
+  { id: 'OASIS-HEX',   name: 'Hex Token',    color: '#fbbf24', glyph: 'H', priceUsd: 0.0019, decimals: 6 },
 ];
 const tokenById = id => TOKENS.find(t => t.id === id);
 
@@ -836,6 +854,245 @@ const GAMES = [
     palette: ['#a78bfa', '#22d3ee', '#fde047'],
     preview: 'pulseforge',
   },
+  {
+    id: 'stellar-salvage',
+    title: 'Stellar Salvage',
+    tag: 'Tap an asteroid, hire mining drones, refine alloys to plasma, then warp for permanent multipliers.',
+    status: 'live',
+    token: 'OASIS-SALVO',
+    url: 'https://stellarsalvage.pages.dev',
+    genres: ['Idle', 'Clicker', 'Prestige'],
+    palette: ['#fbbf24', '#22d3ee', '#a78bfa'],
+    preview: 'stellar',
+  },
+  {
+    id: 'voidrunner',
+    title: 'Voidrunner',
+    tag: 'Vertical bullet hell with focus mode. Survive waves, dodge curtains, kill bosses every five stages.',
+    status: 'live',
+    token: 'OASIS-VOID',
+    url: 'https://voidrunner-40w.pages.dev',
+    genres: ['Bullet Hell', 'Action', 'Skill'],
+    palette: ['#ff2bd6', '#22d3ee', '#fde047'],
+    preview: 'voidrunner',
+  },
+  {
+    id: 'mineforge',
+    title: 'Mineforge',
+    tag: 'Sokoban-style mining puzzle. Push ore onto refinery pads, detonate charges, beat 12 hand-crafted levels.',
+    status: 'live',
+    token: 'OASIS-MINE',
+    url: 'https://mineforge.pages.dev',
+    genres: ['Puzzle', 'Sokoban', 'Strategy'],
+    palette: ['#f59e0b', '#94a3b8', '#ef4444'],
+    preview: 'mineforge',
+  },
+
+  /* ---- Wave 3 builds (live on Cloudflare) ---- */
+  {
+    id: 'asterion',
+    title: 'Asterion',
+    tag: 'Classic asteroids reborn. Drift the void, shatter rocks, burn shield charges to clear curtains. UFOs drop bonuses.',
+    status: 'live',
+    token: 'OASIS-ASTER',
+    url: 'https://asterion-bct.pages.dev',
+    genres: ['Arcade', 'Action', 'Score-chase'],
+    palette: ['#22d3ee', '#fbbf24', '#a78bfa'],
+    preview: 'asterion',
+  },
+  {
+    id: 'bricklord',
+    title: 'Brick Lord',
+    tag: 'Modern brick breaker. Multi-ball pickups, paddle lasers, wide mode, boss bricks that take three hits.',
+    status: 'live',
+    token: 'OASIS-BRICK',
+    url: 'https://bricklord.pages.dev',
+    genres: ['Arcade', 'Skill', 'Score-chase'],
+    palette: ['#22d3ee', '#fbbf24', '#ef4444'],
+    preview: 'bricklord',
+  },
+  {
+    id: 'glyph-snake',
+    title: 'Glyph Snake',
+    tag: 'Snake with twists. Apples grow your tail, golden glyphs triple your score, shield powerups absorb wall hits.',
+    status: 'live',
+    token: 'OASIS-SNAKE',
+    url: 'https://glyphsnake.pages.dev',
+    genres: ['Arcade', 'Skill', 'Classic'],
+    palette: ['#22c55e', '#7c3aed', '#fde047'],
+    preview: 'glyph-snake',
+  },
+  {
+    id: 'glyphfall',
+    title: 'Glyphfall',
+    tag: 'Falling-block puzzler. Seven stones, hard-drop, hold queue, line clears, level ramp every ten lines.',
+    status: 'live',
+    token: 'OASIS-FALL',
+    url: 'https://glyphfall.pages.dev',
+    genres: ['Puzzle', 'Falling-block', 'Skill'],
+    palette: ['#a78bfa', '#22d3ee', '#fbbf24'],
+    preview: 'glyphfall',
+  },
+  {
+    id: 'memo-vault',
+    title: 'Memo Vault',
+    tag: 'Memory matching with combo timer. Three difficulties, runic plates, multi-flip streaks bank big bonuses.',
+    status: 'live',
+    token: 'OASIS-MEMO',
+    url: 'https://memovault-bew.pages.dev',
+    genres: ['Memory', 'Puzzle', 'Skill'],
+    palette: ['#a78bfa', '#fbbf24', '#22d3ee'],
+    preview: 'memo-vault',
+  },
+  {
+    id: 'reflex-reactor',
+    title: 'Reflex Reactor',
+    tag: 'Whack-the-target reflex game. 30-second runs, gold bonus targets, red bombs cost time. Streak builds the multiplier.',
+    status: 'live',
+    token: 'OASIS-FLEX',
+    url: 'https://reflexreactor.pages.dev',
+    genres: ['Reflex', 'Skill', 'Score-chase'],
+    palette: ['#22d3ee', '#fde047', '#ef4444'],
+    preview: 'reflex-reactor',
+  },
+  {
+    id: 'skyline-stack',
+    title: 'Skyline Stack',
+    tag: 'Precision tower stacking. Tap to drop sweeping blocks, perfect alignments compound, misalign and the slab shears.',
+    status: 'live',
+    token: 'OASIS-STACK',
+    url: 'https://skylinestack.pages.dev',
+    genres: ['Arcade', 'Precision', 'Endless'],
+    palette: ['#a78bfa', '#fbbf24', '#22d3ee'],
+    preview: 'skyline-stack',
+  },
+  {
+    id: 'wordforge',
+    title: 'Wordforge',
+    tag: 'Daily five-letter word guess. Six tries, color hints, persistent streak. New word every day from a 1000+ word pool.',
+    status: 'live',
+    token: 'OASIS-WORD',
+    url: 'https://wordforge-bgg.pages.dev',
+    genres: ['Word', 'Daily', 'Puzzle'],
+    palette: ['#a78bfa', '#fbbf24', '#22c55e'],
+    preview: 'wordforge',
+  },
+  {
+    id: 'pinball-forge',
+    title: 'Pinball Forge',
+    tag: 'Single-screen pinball. Bumpers, sigil targets, multiplier ramp, three balls. Nudge with the flippers.',
+    status: 'live',
+    token: 'OASIS-PIN',
+    url: 'https://pinballforge.pages.dev',
+    genres: ['Arcade', 'Pinball', 'Score-chase'],
+    palette: ['#fbbf24', '#a78bfa', '#22d3ee'],
+    preview: 'pinball-forge',
+  },
+  {
+    id: 'hex-conquest',
+    title: 'Hex Conquest',
+    tag: 'Turn-based hex territory. Claim adjacent tiles, surround enemy hexes to flip them. AI opponent with greedy heuristic.',
+    status: 'live',
+    token: 'OASIS-HEX',
+    url: 'https://hexconquest.pages.dev',
+    genres: ['Strategy', 'Turn-based', 'Board'],
+    palette: ['#fbbf24', '#22d3ee', '#ef4444'],
+    preview: 'hex-conquest',
+  },
+
+  /* ---- Pixel-v1 generation (local) ---- */
+  {
+    id: 'iron-frontier-pixel',
+    title: 'Iron Frontier · Pixel',
+    tag: 'Pixel-art take on the mech arena. Hand-drawn frames, CRT bloom, same elo-ladder soul.',
+    status: 'live',
+    url: './iron-frontier-pixel-v1.html',
+    genres: ['PvP', 'Pixel', 'Mech'],
+    palette: ['#94a3b8', '#ef4444', '#fbbf24'],
+    preview: 'iron-frontier-pixel',
+  },
+  {
+    id: 'lightbringer-pixel',
+    title: 'Lightbringer · Pixel',
+    tag: 'Pixel-art crusader RPG. Bring light to the cursed dungeon, smite the dark, save the realm.',
+    status: 'live',
+    url: './lightbringer-pixel-v1.html',
+    genres: ['RPG', 'Pixel', 'Action'],
+    palette: ['#fde68a', '#7c3aed', '#0e0820'],
+    preview: 'lightbringer-pixel',
+  },
+  {
+    id: 'shadowrealm-pixel',
+    title: 'Shadow Realm · Pixel',
+    tag: 'Pixel-art shadow realm crawler. Side-scroll the haunted halls, chain combos, banish the void.',
+    status: 'live',
+    url: './shadowrealm-pixel-v1.html',
+    genres: ['Action', 'Pixel', 'Crawler'],
+    palette: ['#7c3aed', '#ec4899', '#0e0820'],
+    preview: 'shadowrealm-pixel',
+  },
+  {
+    id: 'vault-casino-pixel',
+    title: 'Vault Casino · Pixel',
+    tag: 'Pixel-art casino floor. Same blackjack vault, hand-pixeled chips, jukebox synthwave loop.',
+    status: 'live',
+    url: './vault-casino-pixel-v1.html',
+    genres: ['Casino', 'Pixel', 'Cards'],
+    palette: ['#4ade80', '#0e0820', '#fbbf24'],
+    preview: 'vault-casino-pixel',
+  },
+  {
+    id: 'shadow-deck-pixel',
+    title: 'Shadow Deck · Pixel',
+    tag: 'Pixel-art deck-builder. Draft cursed cards, chain combos, descend the pixel spire.',
+    status: 'live',
+    url: './shadow-deck-pixel-v1.html',
+    genres: ['Cards', 'Pixel', 'Roguelike'],
+    palette: ['#ec4899', '#7c3aed', '#fde68a'],
+    preview: 'shadow-deck-pixel',
+  },
+  {
+    id: 'colosseum-pixel',
+    title: 'Colosseum · Pixel',
+    tag: 'Pixel-art arena combat. Pick a gladiator, survive the rounds, win the laurel of the crowd.',
+    status: 'live',
+    url: './colosseum-pixel-v1.html',
+    genres: ['Action', 'Pixel', 'Arena'],
+    palette: ['#fbbf24', '#ef4444', '#94a3b8'],
+    preview: 'colosseum-pixel',
+  },
+
+  /* ---- Klever Arcade imports (local) ---- */
+  {
+    id: 'klevergl',
+    title: 'KleverGL',
+    tag: 'Validator Run. Pilot a KFI-class racer through the KleverChain validator network — collect $KLV staking rewards, dodge malicious nodes. The chain doesn\'t fork for crashes.',
+    status: 'live',
+    url: './klevergl.html',
+    genres: ['Arcade', 'Racing', 'Score-chase'],
+    palette: ['#00d4ff', '#ff3088', '#b840ff'],
+    preview: 'klevergl',
+  },
+  {
+    id: 'kleverhex',
+    title: 'KleverHex',
+    tag: 'Block Production. Rotate the central validator, align incoming token-blocks, confirm three-in-a-column to the chain. Survive the throughput.',
+    status: 'live',
+    url: './kleverhex.html',
+    genres: ['Puzzle', 'Match-3', 'Skill'],
+    palette: ['#b840ff', '#00d4ff', '#ffaa44'],
+    preview: 'kleverhex',
+  },
+  {
+    id: 'coldwallet',
+    title: 'A Cold Wallet',
+    tag: 'A KleverChain recovery thriller. The lights are out, the KleverSafe is locked, your 24-word phrase is somewhere on this disk. Bring the node back online.',
+    status: 'live',
+    url: './coldwallet.html',
+    genres: ['Puzzle', 'Narrative', 'Recovery'],
+    palette: ['#00d4ff', '#1a1530', '#e8e4ff'],
+    preview: 'coldwallet',
+  },
 ];
 
 const POOLS = [
@@ -846,15 +1103,42 @@ const POOLS = [
   { pair: ['KLV', 'OASIS-FORGE'], tvl:  28440, apr:  72.5, vol24:  1120 },
 ];
 
-const SAMPLE_FEED = [
-  { addr: 'klv1f2…9z7r', what: 'swapped 200 KLV → OASIS-DRIFT', when: '7s ago' },
-  { addr: 'klv1m8l…vnrf', what: 'added liquidity to KLV/OASIS-NINJA', when: '34s ago' },
-  { addr: 'klv1ax6…1tcq', what: 'claimed 142 OASIS-DRIFT from Aether Drift', when: '1m ago' },
-  { addr: 'klv1dz3…22k0', what: 'opened a new run of Shadow Step', when: '1m ago' },
-  { addr: 'klv1qp4…u88x', what: 'staked KLV/OASIS-VAULT LP', when: '3m ago' },
-  { addr: 'klv1jn1…rrhd', what: 'minted Inner Edge L1 (Aether Drift)', when: '5m ago' },
-  { addr: 'klv1ye2…0hwb', what: 'bridged KLV from KleverChain → Tron', when: '7m ago' },
-];
+/* SAMPLE_FEED removed — see ActivityFeed for the real cross-game activity log
+   wired up via oasis-activity.js (window.OasisActivity). */
+const GAME_TITLE_BY_ID = (function () {
+  var m = {};
+  GAMES.forEach(function (g) { m[g.id] = g.title; });
+  return m;
+})();
+function formatActivityWhen(ts) {
+  if (!ts) return '';
+  var diff = Math.max(0, Date.now() - ts);
+  if (diff < 5000)    return 'just now';
+  if (diff < 60000)   return Math.floor(diff / 1000) + 's ago';
+  if (diff < 3600000) return Math.floor(diff / 60000) + 'm ago';
+  if (diff < 86400000) return Math.floor(diff / 3600000) + 'h ago';
+  return Math.floor(diff / 86400000) + 'd ago';
+}
+function prettifyGameId(id) {
+  if (!id) return '';
+  // 'brick-lord' / 'shadow-step' → 'Brick Lord' / 'Shadow Step'
+  return String(id)
+    .split('-')
+    .map(function (w) { return w ? w.charAt(0).toUpperCase() + w.slice(1) : ''; })
+    .join(' ');
+}
+function formatActivityWhat(ev) {
+  var title = GAME_TITLE_BY_ID[ev.game] || prettifyGameId(ev.game);
+  switch (ev.type) {
+    case 'started':     return 'started a run of ' + title;
+    case 'win':         return 'cleared ' + title + (ev.detail ? ' · ' + ev.detail : '');
+    case 'death':       return 'died in ' + title + (ev.value != null ? ' at ' + ev.value : '');
+    case 'level_up':    return 'leveled up in ' + title + (ev.value != null ? ' → ' + ev.value : '');
+    case 'achievement': return 'unlocked ' + (ev.detail || 'an achievement') + ' in ' + title;
+    case 'score':       return 'scored ' + (ev.value != null ? ev.value : '?') + ' in ' + title;
+    default:            return ev.type + ' · ' + title + (ev.detail ? ' · ' + ev.detail : '');
+  }
+}
 
 /* ── Klever wallet helper ─────────────────────────────────────────────── */
 const KLEVER = {
@@ -1201,6 +1485,158 @@ function GamePreview({ kind, palette }) {
         ctx.shadowBlur = 0;
         ctx.fillStyle = palette[2];
         ctx.fillRect(cx - 12, cy - 1, 24, 3);
+      }
+      else if (kind === 'stellar') {
+        // spinning asteroid + orbiting drones
+        const cx = w * 0.5, cy = h * 0.55;
+        // stars
+        for (let i = 0; i < 30; i++) {
+          const sx = (i * 73) % w;
+          const sy = (i * 41) % h;
+          ctx.fillStyle = 'rgba(186,230,253,0.6)';
+          ctx.fillRect(sx, sy, 1.4, 1.4);
+        }
+        // asteroid
+        ctx.save();
+        ctx.translate(cx, cy);
+        ctx.rotate(t * 0.4);
+        const r = Math.min(w, h) * 0.18;
+        const grad = ctx.createRadialGradient(0, 0, r * 0.4, 0, 0, r);
+        grad.addColorStop(0, '#8a6a3e');
+        grad.addColorStop(1, '#1a0f08');
+        ctx.fillStyle = grad;
+        ctx.beginPath();
+        for (let i = 0; i < 16; i++) {
+          const a = (i / 16) * Math.PI * 2;
+          const rr = r * (0.85 + Math.sin(a * 3) * 0.1);
+          if (i === 0) ctx.moveTo(Math.cos(a) * rr, Math.sin(a) * rr);
+          else ctx.lineTo(Math.cos(a) * rr, Math.sin(a) * rr);
+        }
+        ctx.closePath();
+        ctx.fill();
+        ctx.fillStyle = '#3b1e0a';
+        for (let i = 0; i < 5; i++) {
+          const a = (i * 1.7);
+          ctx.beginPath();
+          ctx.arc(Math.cos(a) * r * 0.5, Math.sin(a) * r * 0.5, 4, 0, Math.PI * 2);
+          ctx.fill();
+        }
+        ctx.restore();
+        // orbiting drones
+        for (let i = 0; i < 4; i++) {
+          const a = t * 1.2 + i * Math.PI / 2;
+          const dx = cx + Math.cos(a) * (r + 22);
+          const dy = cy + Math.sin(a) * (r + 22);
+          ctx.fillStyle = palette[1];
+          ctx.shadowColor = palette[1]; ctx.shadowBlur = 8;
+          ctx.fillRect(dx - 4, dy - 2, 8, 4);
+          ctx.shadowBlur = 0;
+        }
+        // currency popup
+        const popY = cy - r - 14 + Math.sin(t * 3) * 4;
+        ctx.fillStyle = palette[0];
+        ctx.font = "bold 13px 'Audiowide', sans-serif";
+        ctx.textAlign = 'center';
+        ctx.fillText('+12', cx, popY);
+      }
+      else if (kind === 'voidrunner') {
+        // ship + falling enemies + bullets
+        const cx = w * 0.5, cy = h * 0.78;
+        // stars
+        for (let i = 0; i < 40; i++) {
+          const sx = (i * 53) % w;
+          const sy = ((i * 31 + t * 60) % h);
+          ctx.fillStyle = 'rgba(167,139,250,0.7)';
+          ctx.fillRect(sx, sy, 1, 2);
+        }
+        // enemies
+        for (let i = 0; i < 4; i++) {
+          const ex = (i + 0.5) * (w / 4);
+          const ey = ((t * 30 + i * 50) % h * 0.7);
+          ctx.fillStyle = palette[0];
+          ctx.shadowColor = palette[0]; ctx.shadowBlur = 8;
+          ctx.beginPath();
+          ctx.moveTo(ex, ey + 8); ctx.lineTo(ex + 6, ey - 4); ctx.lineTo(ex - 6, ey - 4);
+          ctx.closePath(); ctx.fill();
+          ctx.shadowBlur = 0;
+        }
+        // player ship
+        ctx.fillStyle = palette[1];
+        ctx.shadowColor = palette[1]; ctx.shadowBlur = 12;
+        ctx.beginPath();
+        ctx.moveTo(cx, cy - 12);
+        ctx.lineTo(cx + 9, cy + 6);
+        ctx.lineTo(cx - 9, cy + 6);
+        ctx.closePath();
+        ctx.fill();
+        ctx.shadowBlur = 0;
+        // bullets going up
+        for (let i = 0; i < 4; i++) {
+          const by = cy - 14 - ((t * 80 + i * 25) % 60);
+          ctx.fillStyle = palette[2];
+          ctx.fillRect(cx - 1.5, by - 4, 3, 8);
+        }
+        // pulse from below
+        const pulse = (Math.sin(t * 4) + 1) / 2;
+        ctx.strokeStyle = palette[0] + Math.floor(pulse * 200).toString(16).padStart(2, '0');
+        ctx.lineWidth = 1.5;
+        ctx.beginPath();
+        ctx.arc(cx, cy, 22 + pulse * 8, 0, Math.PI * 2);
+        ctx.stroke();
+      }
+      else if (kind === 'mineforge') {
+        // grid with ore and pad + miner
+        const tile = Math.min(w, h) * 0.14;
+        const startX = (w - tile * 5) / 2;
+        const startY = (h - tile * 4) / 2 + 4;
+        for (let r = 0; r < 4; r++) {
+          for (let c = 0; c < 5; c++) {
+            const x = startX + c * tile, y = startY + r * tile;
+            ctx.fillStyle = (c + r) % 2 === 0 ? '#1a1424' : '#22192e';
+            ctx.fillRect(x, y, tile, tile);
+            ctx.strokeStyle = 'rgba(245,158,11,0.06)';
+            ctx.strokeRect(x + 0.5, y + 0.5, tile - 1, tile - 1);
+          }
+        }
+        // pads
+        ctx.strokeStyle = palette[0];
+        ctx.lineWidth = 2;
+        ctx.strokeRect(startX + 4 * tile + 4, startY + 1 * tile + 4, tile - 8, tile - 8);
+        ctx.fillStyle = palette[0] + '33';
+        ctx.fillRect(startX + 4 * tile + 4, startY + 1 * tile + 4, tile - 8, tile - 8);
+        // ore (animated push)
+        const phase = (t * 0.4) % 1;
+        const oreCol = phase * 3;
+        const orePos = startX + (1 + Math.floor(oreCol)) * tile;
+        const oreFrac = orePos + (oreCol - Math.floor(oreCol)) * tile;
+        const oreY = startY + 1 * tile;
+        const oreCx = oreFrac + tile / 2, oreCy = oreY + tile / 2;
+        const grad = ctx.createLinearGradient(oreCx - 12, oreCy - 12, oreCx + 12, oreCy + 12);
+        grad.addColorStop(0, '#fde68a');
+        grad.addColorStop(1, '#b45309');
+        ctx.fillStyle = grad;
+        ctx.shadowColor = palette[0]; ctx.shadowBlur = 10;
+        ctx.beginPath();
+        for (let k = 0; k < 6; k++) {
+          const a = (k / 6) * Math.PI * 2 - Math.PI / 6;
+          const px = oreCx + Math.cos(a) * tile * 0.3;
+          const py = oreCy + Math.sin(a) * tile * 0.3;
+          if (k === 0) ctx.moveTo(px, py); else ctx.lineTo(px, py);
+        }
+        ctx.closePath();
+        ctx.fill();
+        ctx.shadowBlur = 0;
+        // miner (chasing the ore)
+        const mx = orePos - tile + tile / 2;
+        const my = oreY + tile / 2;
+        ctx.fillStyle = palette[1];
+        ctx.shadowColor = palette[1]; ctx.shadowBlur = 8;
+        ctx.beginPath();
+        ctx.arc(mx, my - 4, tile * 0.18, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.shadowBlur = 0;
+        ctx.fillStyle = '#0e7490';
+        ctx.fillRect(mx - tile * 0.15, my, tile * 0.3, tile * 0.25);
       }
       else if (kind === 'pulseforge') {
         // 4 lanes converging toward the bottom
@@ -1656,33 +2092,47 @@ function WalletPanel({ wallet, refresh, toast }) {
 }
 
 function ActivityFeed() {
-  const [items, setItems] = useState(SAMPLE_FEED);
+  const OA = (typeof window !== 'undefined' && window.OasisActivity) || null;
+  const [items, setItems] = useState(() => (OA ? OA.getActivity(20) : []));
+  const [, forceTick] = useState(0);
+
+  // Live updates: subscribe to BroadcastChannel + storage events from any tab,
+  // and (when configured) start polling the remote backend every 5s.
   useEffect(() => {
-    const id = setInterval(() => {
-      setItems(prev => {
-        const next = [...prev];
-        const last = next.pop();
-        next.unshift({ ...last, when: 'just now' });
-        return next.map((e, i) => ({
-          ...e,
-          when: i === 0 ? 'just now' : i === 1 ? '12s ago' : i === 2 ? '34s ago' : i === 3 ? '1m ago' : `${i + 1}m ago`,
-        }));
-      });
-    }, 2500);
+    if (!OA) return;
+    const unsub = OA.onActivity(() => setItems(OA.getActivity(20)));
+    if (typeof OA.startPolling === 'function') OA.startPolling(5000);
+    return () => {
+      unsub();
+      if (typeof OA.stopPolling === 'function') OA.stopPolling();
+    };
+  }, []);
+
+  // Re-render every 15s so the relative timestamps stay fresh.
+  useEffect(() => {
+    const id = setInterval(() => forceTick(t => t + 1), 15000);
     return () => clearInterval(id);
   }, []);
+
   return (
     <div className="panel">
       <h3 style={{ color: COLORS.gold, marginBottom: 12, fontSize: '1.05rem' }}>Live Activity</h3>
-      <div>
-        {items.slice(0, 7).map((it, i) => (
-          <div key={it.what + i} className="feed-row">
-            <span className="who">{it.addr}</span>
-            <span className="what">{it.what}</span>
-            <span className="when">{it.when}</span>
-          </div>
-        ))}
-      </div>
+      {items.length === 0 ? (
+        <div style={{ color: COLORS.muted, fontSize: '0.86rem', padding: '20px 0', lineHeight: 1.55 }}>
+          No activity yet. Launch any game from <strong style={{ color: COLORS.gold }}>The Arcade</strong> —
+          starts, scores, and milestones from every game show up here in real time.
+        </div>
+      ) : (
+        <div>
+          {items.slice(0, 8).map((ev, i) => (
+            <div key={ev.ts + ':' + i} className="feed-row">
+              <span className="who">{ev.player || (GAME_TITLE_BY_ID[ev.game] || ev.game)}</span>
+              <span className="what">{formatActivityWhat(ev)}</span>
+              <span className="when">{formatActivityWhen(ev.ts)}</span>
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 }
@@ -1777,7 +2227,7 @@ function App() {
           </div>
 
           <div className="stats-strip">
-            <StatCell label="Games Live"   value={9}      />
+            <StatCell label="Games Live"   value={31}     />
             <StatCell label="Games Coming" value={0}      />
             <StatCell label="Pools Active" value={POOLS.length} />
             <StatCell label="Total TVL"    value={POOLS.reduce((s,p) => s + p.tvl, 0)} fmt="usd" />
@@ -1788,7 +2238,7 @@ function App() {
             <div className="section-head">
               <div>
                 <h2>Featured Games</h2>
-                <p>Two live, four in the forge. Each game ships with its own reward token and a fully-on-chain progression layer.</p>
+                <p>31 live across the arcade — WebGPU flagships, fresh Claude Code builds, the pixel-v1 generation, and the Klever-native trio. Each game ships with its own progression layer.</p>
               </div>
               <button className="btn-ghost" onClick={() => go('games')}>VIEW ALL ↗</button>
             </div>

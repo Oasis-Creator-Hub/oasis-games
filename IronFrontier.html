@@ -2,6 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8" />
+<meta name="oasis-activity-api" content="">
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>Iron Frontier | Oasis</title>
 <!-- Asset credit: Pixel-art FX from Super Pixel Effects Gigapack — Will Tice / unTied Games (untiedgames.com). Used under pack license. -->
@@ -380,7 +381,7 @@
     </a>
     <span class="divider"></span>
     <span class="game-title">IRON <span class="accent">FRONTIER</span></span>
-    <span class="version-badge">v1.0</span>
+    <span class="version-badge">v1.1</span>
   </div>
   <div class="right">
     <button id="wallet-pill" class="wallet-pill" onclick="connectWallet()">
@@ -1758,6 +1759,21 @@ setTimeout(()=>{
   }
 }, 500);
 
+</script>
+
+<!-- Oasis cross-game activity hook (auto-injected) -->
+<script src="oasis-activity.js"></script>
+<script>
+  (function () {
+    var GAME = 'iron-frontier';
+    try { if (window.recordActivity) window.recordActivity(GAME, 'started'); } catch (e) {}
+    window.addEventListener('oasis:activity', function (e) {
+      try {
+        if (!window.recordActivity || !e || !e.detail || !e.detail.type) return;
+        window.recordActivity(GAME, e.detail.type, e.detail);
+      } catch (err) {}
+    });
+  })();
 </script>
 </body>
 </html>

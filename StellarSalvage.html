@@ -2,6 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8" />
+<meta name="oasis-activity-api" content="">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
 <title>Stellar Salvage | Oasis</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -264,7 +265,7 @@
     </a>
     <span class="divider"></span>
     <span class="game-title">STELLAR <span class="accent">SALVAGE</span></span>
-    <span class="version-badge">v1.0</span>
+    <span class="version-badge">v1.2</span>
   </div>
   <div class="right">
     <button id="wallet-pill" class="wallet-pill" onclick="connectWallet()">
@@ -421,29 +422,29 @@ const UPGRADES = {
   prismL: {
     name:'PRISM ARRAY', glyph:'◆', cls:'glyph-prism',
     desc: lvl => `+${(prismMul(lvl)*100).toFixed(1)}% scrap rate`,
-    base:1000, growth:1.40, max:80,
+    base:1000, growth:1.32, max:80,
   },
 };
 const MODULES = {
   modCrit: {
     name:'CRITICAL CALIBRATOR', glyph:'⚡', cls:'glyph-tap',
     desc: lvl => `${(critChance(lvl)*100).toFixed(0)}% tap crit chance (×5 tap)`,
-    base:1, growth:1.6, max:25, costRes:'plasma',
+    base:1, growth:1.5, max:25, costRes:'plasma',
   },
   modAuto: {
     name:'AUTO-TAPPER', glyph:'∿', cls:'glyph-drone',
     desc: lvl => `${autoTapRate(lvl).toFixed(2)} taps/s automatic`,
-    base:2, growth:1.7, max:30, costRes:'plasma',
+    base:2, growth:1.55, max:30, costRes:'plasma',
   },
   modSpark: {
     name:'OVERCLOCK SPARK', glyph:'☆', cls:'glyph-foundry',
     desc: lvl => `+${(sparkMul(lvl)*100).toFixed(0)}% all rates`,
-    base:3, growth:1.8, max:30, costRes:'plasma',
+    base:3, growth:1.6, max:30, costRes:'plasma',
   },
   modBlessing: {
     name:'WARP BLESSING', glyph:'Ω', cls:'glyph-warp',
     desc: lvl => `+${(blessingMul(lvl)*100).toFixed(0)}% bonus per warp`,
-    base:5, growth:2.0, max:30, costRes:'plasma',
+    base:5, growth:1.75, max:30, costRes:'plasma',
   },
 };
 
@@ -882,8 +883,10 @@ const WARP_THRESHOLD = 10000;
 function refreshWarpBtn(){
   const ready = state.lifetimeScrap >= WARP_THRESHOLD;
   const btn = document.getElementById('warp-btn');
+  if (!btn) return;
   btn.disabled = !ready;
-  document.getElementById('warp-thresh').textContent = formatN(WARP_THRESHOLD);
+  const thresh = document.getElementById('warp-thresh');
+  if (thresh) thresh.textContent = formatN(WARP_THRESHOLD);
   if (ready){
     const bonus = 5 + state.modBlessing*5;
     document.getElementById('warp-info').innerHTML =
@@ -997,6 +1000,21 @@ async function connectWallet(){
     showToast('CONNECT FAILED');
   }
 }
+</script>
+
+<!-- Oasis cross-game activity hook (auto-injected) -->
+<script src="oasis-activity.js"></script>
+<script>
+  (function () {
+    var GAME = 'stellar-salvage';
+    try { if (window.recordActivity) window.recordActivity(GAME, 'started'); } catch (e) {}
+    window.addEventListener('oasis:activity', function (e) {
+      try {
+        if (!window.recordActivity || !e || !e.detail || !e.detail.type) return;
+        window.recordActivity(GAME, e.detail.type, e.detail);
+      } catch (err) {}
+    });
+  })();
 </script>
 </body>
 </html>
